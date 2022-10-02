@@ -40,3 +40,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Paperweight files ###
+PlantPaper-API/
+PlantPaper-Server/
