@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GerryYuu <yuu8583@proton.me>
+Date: Mon, 3 Oct 2022 00:15:36 +0800
+Subject: [PATCH] Lithium Patch - ai.raid
+
+Original code by CaffeineMC, licensed under GNU Lesser General Public License v3.0
+You can find the original code on https://github.com/CaffeineMC/lithium-fabric (Yarn mappings)
+
+diff --git a/src/main/java/net/minecraft/world/entity/raid/Raid.java b/src/main/java/net/minecraft/world/entity/raid/Raid.java
+index 6a0a1731fd6804eb69d3641213712d31bce085b2..61152647ab27963b98ba96a9dce73789ee973d2d 100644
+--- a/src/main/java/net/minecraft/world/entity/raid/Raid.java
++++ b/src/main/java/net/minecraft/world/entity/raid/Raid.java
+@@ -269,7 +269,17 @@ public class Raid {
+         this.status = Raid.RaidStatus.STOPPED;
+     }
+ 
++    private boolean isBarDirty; // PlanetPaper
++
+     public void tick() {
++        // PlanetPaper start
++        if (this.isBarDirty) {
++            this.raidEvent.setProgress(Mth.clamp(this.getHealthOfLivingRaiders() / this.totalHealth, 0.0F, 1.0F));
++
++            this.isBarDirty = false;
++        }
++        // PlanetPaper end
++
+         if (!this.isStopped()) {
+             if (this.status == Raid.RaidStatus.ONGOING) {
+                 boolean flag = this.active;
+@@ -626,7 +636,8 @@ public class Raid {
+     }
+ 
+     public void updateBossbar() {
+-        this.raidEvent.setProgress(Mth.clamp(this.getHealthOfLivingRaiders() / this.totalHealth, 0.0F, 1.0F));
++        // this.raidEvent.setProgress(Mth.clamp(this.getHealthOfLivingRaiders() / this.totalHealth, 0.0F, 1.0F)); // PlanetPaper
++        this.isBarDirty = true; // PlanetPaper
+     }
+ 
+     public float getHealthOfLivingRaiders() {
+diff --git a/src/main/java/net/minecraft/world/entity/raid/Raider.java b/src/main/java/net/minecraft/world/entity/raid/Raider.java
+index 4bb9730b6a42702e91467f980b9f045585039db3..0ea4ef08d3b6de62d48b8bf57cccc66440879b7a 100644
+--- a/src/main/java/net/minecraft/world/entity/raid/Raider.java
++++ b/src/main/java/net/minecraft/world/entity/raid/Raider.java
+@@ -45,9 +45,10 @@ import net.minecraft.world.phys.Vec3;
+ 
+ public abstract class Raider extends PatrollingMonster {
+ 
++    public static final ItemStack CACHED_LEADER_BANNER = Raid.getLeaderBannerInstance();
+     protected static final EntityDataAccessor<Boolean> IS_CELEBRATING = SynchedEntityData.defineId(Raider.class, EntityDataSerializers.BOOLEAN);
+     static final Predicate<ItemEntity> ALLOWED_ITEMS = (entityitem) -> {
+-        return !entityitem.hasPickUpDelay() && entityitem.isAlive() && ItemStack.matches(entityitem.getItem(), Raid.getLeaderBannerInstance());
++        return !entityitem.hasPickUpDelay() && entityitem.isAlive() && ItemStack.matches(entityitem.getItem(), CACHED_LEADER_BANNER); // PlanetPaper
+     };
+     @Nullable
+     protected Raid raid;
+@@ -149,7 +150,7 @@ public abstract class Raider extends PatrollingMonster {
+                     }
+                 }
+ 
+-                if (!itemstack.isEmpty() && ItemStack.matches(itemstack, Raid.getLeaderBannerInstance()) && entityhuman != null) {
++                if (!itemstack.isEmpty() && ItemStack.matches(itemstack, CACHED_LEADER_BANNER) && entityhuman != null) { // PlanetPaper
+                     MobEffectInstance mobeffect = entityhuman.getEffect(MobEffects.BAD_OMEN);
+                     byte b0 = 1;
+                     int i;
+@@ -244,7 +245,7 @@ public abstract class Raider extends PatrollingMonster {
+         ItemStack itemstack = item.getItem();
+         boolean flag = this.hasActiveRaid() && this.getCurrentRaid().getLeader(this.getWave()) != null;
+ 
+-        if (this.hasActiveRaid() && !flag && ItemStack.matches(itemstack, Raid.getLeaderBannerInstance())) {
++        if (this.hasActiveRaid() && !flag && ItemStack.matches(itemstack, CACHED_LEADER_BANNER)) { // PlanetPaper
+             EquipmentSlot enumitemslot = EquipmentSlot.HEAD;
+             ItemStack itemstack1 = this.getItemBySlot(enumitemslot);
+             double d0 = (double) this.getEquipmentDropChance(enumitemslot);
+@@ -315,7 +316,7 @@ public abstract class Raider extends PatrollingMonster {
+             if (!this.mob.level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) || !this.mob.canPickUpLoot()) return false; // Paper - respect game and entity rules for picking up items
+             Raid raid = this.mob.getCurrentRaid();
+ 
+-            if (this.mob.hasActiveRaid() && !this.mob.getCurrentRaid().isOver() && this.mob.canBeLeader() && !ItemStack.matches(this.mob.getItemBySlot(EquipmentSlot.HEAD), Raid.getLeaderBannerInstance())) {
++            if (this.mob.hasActiveRaid() && !this.mob.getCurrentRaid().isOver() && this.mob.canBeLeader() && !ItemStack.matches(this.mob.getItemBySlot(EquipmentSlot.HEAD), CACHED_LEADER_BANNER)) { // PlanetPaper
+                 Raider entityraider = raid.getLeader(this.mob.getWave());
+ 
+                 if (entityraider == null || !entityraider.isAlive()) {
