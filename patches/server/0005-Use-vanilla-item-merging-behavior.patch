@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GerryYuu <yuu8583@proton.me>
+Date: Sun, 2 Oct 2022 23:40:24 +0800
+Subject: [PATCH] Use vanilla item merging behavior
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index fcc5444a1268931a0fd2df1e6bbbc17cfd5a61e0..8974cbdfefe674b74ea817bb4b0c260d990e79ba 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -279,7 +279,7 @@ public class ItemEntity extends Entity {
+         ItemStack itemstack1 = other.getItem();
+ 
+         if (Objects.equals(this.getOwner(), other.getOwner()) && ItemEntity.areMergable(itemstack, itemstack1)) {
+-            if (true || itemstack1.getCount() < itemstack.getCount()) { // Spigot
++            if (false) { // Spigot // PlanetPaper - vanilla item merging behavior
+                 ItemEntity.merge(this, itemstack, other, itemstack1);
+             } else {
+                 ItemEntity.merge(other, itemstack1, this, itemstack);

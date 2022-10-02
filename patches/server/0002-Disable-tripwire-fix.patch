@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GerryYuu <yuu8583@proton.me>
+Date: Sun, 2 Oct 2022 23:25:43 +0800
+Subject: [PATCH] Disable tripwire fix
+
+
+diff --git a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
+index 004dce26ff073f1de52a84cd425c4f60fdab5e50..c9baed0ea1d75e6b775f39d0c1ba51bf926546cd 100644
+--- a/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/TripWireHookBlock.java
+@@ -147,7 +147,7 @@ public class TripWireHookBlock extends Block {
+                 boolean flag7 = (Boolean) iblockdata2.getValue(TripWireBlock.POWERED);
+ 
+                 flag5 |= flag6 && flag7;
+-                if (k != i || !tripWireBeingRemoved || !flag6) // Paper - don't update the tripwire again if being removed and not disarmed
++                if (k != i || true || !flag6) // Paper - don't update the tripwire again if being removed and not disarmed // PlanetPaper - disable tripwire fix
+                 aiblockdata[k] = iblockdata2;
+                 if (k == i) {
+                     world.scheduleTick(pos, (Block) this, 10);

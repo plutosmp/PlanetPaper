@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GerryYuu <yuu8583@proton.me>
+Date: Sun, 2 Oct 2022 23:35:10 +0800
+Subject: [PATCH] Disable portal and duper fix
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 008bd65d838819431a0823c6ac5925774bd155a1..d7f8a138eead048f68040f27e0b8264c6ffa9124 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -512,6 +512,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     }
+     // Paper end - optimise entity tracking
+     // Paper start - make end portalling safe
++    // PlanetPaper start - disable safe teleport
++    /*
+     public BlockPos portalBlock;
+     public ServerLevel portalWorld;
+     public void tickEndPortal() {
+@@ -540,6 +542,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+         }
+         this.teleportTo(worldserver, null);
+     }
++     */
+     // Paper end - make end portalling safe
+ 
+     public Entity(EntityType<?> type, Level world) {
+@@ -2899,7 +2902,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+             }
+ 
+             this.processPortalCooldown();
+-            this.tickEndPortal(); // Paper - make end portalling safe
++            // PlanetPaper - disable safe teleport
++            // this.tickEndPortal(); // Paper - make end portalling safe
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+index ef07967b64180c54338b8fb2ba1780adec87f333..2bd3ba272eb35f574bbda1ee5de2c5bf91f37c90 100644
+--- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
+@@ -61,7 +61,7 @@ public class FallingBlockEntity extends Entity {
+     @Nullable
+     public CompoundTag blockData;
+     protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
+-    public boolean autoExpire = true; // Paper - Auto expire setting
++    public boolean autoExpire = false; // Paper - Auto expire setting // PlanetPaper - disable
+ 
+     public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level world) {
+         super(type, world);
+@@ -128,9 +128,11 @@ public class FallingBlockEntity extends Entity {
+     @Override
+     public void tick() {
+         // Paper start - fix sand duping
+-        if (this.isRemoved()) {
++        // PlanetPaper start - disable check
++        /*if (this.isRemoved()) {
+             return;
+-        }
++        }*/
++        // PlanetPaper end
+         // Paper end - fix sand duping
+         if (this.blockState.isAir()) {
+             this.discard();
+@@ -145,9 +147,11 @@ public class FallingBlockEntity extends Entity {
+             this.move(MoverType.SELF, this.getDeltaMovement());
+ 
+             // Paper start - fix sand duping
+-            if (this.isRemoved()) {
++            // PlanetPaper start - disable check
++            /*if (this.isRemoved()) {
+                 return;
+-            }
++            }*/
++            // PlanetPaper end
+             // Paper end - fix sand duping
+ 
+             // Paper start - Configurable EntityFallingBlock height nerf
+diff --git a/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java b/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
+index 15c5cccfe02c924c02f605eb47dd0b420b189891..9cfdfd2a486186c12c6dd169384f9310badecf9f 100644
+--- a/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/EndPortalBlock.java
+@@ -53,10 +53,21 @@ public class EndPortalBlock extends BaseEntityBlock {
+                 // return; // CraftBukkit - always fire event in case plugins wish to change it
+             }
+ 
++            // PlanetPaper start - disable portal fix
+             // Paper start - move all of this logic into portal tick
+-            entity.portalWorld = ((ServerLevel)world);
+-            entity.portalBlock = pos.immutable();
++            // entity.portalWorld = ((ServerLevel)world); // PlanetPaper
++            // entity.portalBlock = pos.immutable(); // PlanetPaper
+             // Paper end - move all of this logic into portal tick
++
++            EntityPortalEnterEvent event = new EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
++            world.getCraftServer().getPluginManager().callEvent(event);
++
++            if (entity instanceof ServerPlayer) {
++                ((ServerPlayer) entity).changeDimension(worldserver, PlayerTeleportEvent.TeleportCause.END_PORTAL);
++                return;
++            }
++            entity.changeDimension(worldserver);
++            // PlanetPaper end
+         }
+ 
+     }
