@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishland <ishlandmc@yeah.net>
+Date: Sun, 12 Dec 2021 17:19:00 -0500
+Subject: [PATCH] VMP Patch - Skip entity move if movement is zero
+
+Copyright (c) 2021-2022 ishland
+
+Original code by RelativityMC, licensed under MIT
+You can find the original code on https://github.com/RelativityMC/VMP-fabric (Yarn mappings)
+
+This patch file is from Mirai: https://github.com/etil2jz/Mirai
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index d7f8a138eead048f68040f27e0b8264c6ffa9124..2f9ec7cc09e4668eaf73dff73d51be3cd306d926 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -300,6 +300,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     public float yRotO;
+     public float xRotO;
+     private AABB bb;
++    private boolean boundingBoxChanged = false; // Mirai - vmp: skip entity move if movement is zero
+     public boolean onGround;
+     public boolean horizontalCollision;
+     public boolean verticalCollision;
+@@ -1003,6 +1004,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     // Paper end - detailed watchdog information
+ 
+     public void move(MoverType movementType, Vec3 movement) {
++        // Mirai start - vmp: skip entity move if movement is zero
++        if (!boundingBoxChanged && movement.equals(Vec3.ZERO)) {
++            boundingBoxChanged = false;
++            return;
++        }
++        // Mirai end
+         // Paper start - detailed watchdog information
+         io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
+         synchronized (this.posLock) {
+@@ -3727,6 +3734,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+     }
+ 
+     public final void setBoundingBox(AABB boundingBox) {
++        if (!this.bb.equals(boundingBox)) boundingBoxChanged = true; // Mirai - vmp: skip entity move if movement is zero
+         // CraftBukkit start - block invalid bounding boxes
+         double minX = boundingBox.minX,
+                 minY = boundingBox.minY,
