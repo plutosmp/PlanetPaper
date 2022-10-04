@@ -5,7 +5,7 @@ Subject: [PATCH] Rebrand
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 44e0f265432487fe5c3c00c5245041298ade16a0..c27d069e05483fbf8174b0d246edcbdf47284b8c 100644
+index 44e0f265432487fe5c3c00c5245041298ade16a0..4296b82205eba2898339a568ed7d95d17ec678e1 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -9,8 +9,12 @@ plugins {
@@ -14,7 +14,7 @@ index 44e0f265432487fe5c3c00c5245041298ade16a0..c27d069e05483fbf8174b0d246edcbdf
  dependencies {
 -    implementation(project(":paper-api"))
 -    implementation(project(":paper-mojangapi"))
-+    implementation(project(":PlanetPaper-API")) // PlanetPaper
++    implementation(project(":planetpaper-api")) // PlanetPaper
 +    // PlanetPaper start
 +    implementation("io.papermc.paper:paper-mojangapi:1.19.2-R0.1-SNAPSHOT") {
 +        exclude("io.papermc.paper", "paper-api")
@@ -110,7 +110,7 @@ index 111f8276f26350a5c62a7b8577b4598978b5355d..b3167b95be5675bf36f4697e8b7479ab
      private final String bukkitVersion = Versioning.getBukkitVersion();
      private final Logger logger = Logger.getLogger("Minecraft");
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
-index 774556a62eb240da42e84db4502e2ed43495be17..c7f3c77a769259e93586b7930a66e71ed8dba3a6 100644
+index 774556a62eb240da42e84db4502e2ed43495be17..bcbd66e060cb89db58308a8507b0e5703080587b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 +++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 @@ -11,7 +11,7 @@ public final class Versioning {
@@ -118,7 +118,7 @@ index 774556a62eb240da42e84db4502e2ed43495be17..c7f3c77a769259e93586b7930a66e71e
          String result = "Unknown-Version";
  
 -        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/io.papermc.paper/paper-api/pom.properties");
-+        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/top.plutomc.planetpaper/PlanetPaper-API/pom.properties");
++        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/top.plutomc.planetpaper/planetpaper-api/pom.properties");
          Properties properties = new Properties();
  
          if (stream != null) {

@@ -45,7 +45,7 @@ subprojects {
 }
 
 paperweight {
-    serverProject.set(project(":PlanetPaper-Server"))
+    serverProject.set(project(":planetpaper-server"))
 
     remapRepo.set("https://maven.fabricmc.net/")
     decompileRepo.set("https://maven.quiltmc.org/")

@@ -5,5 +5,9 @@ pluginManagement {
     }
 }
 
-rootProject.name = "PlanetPaper"
-include("PlanetPaper-API", "PlanetPaper-Server")
+rootProject.name = "planetpaper"
+for (name in listOf("PlanetPaper-API", "PlanetPaper-Server")) {
+    val projName = name.toLowerCase(java.util.Locale.ENGLISH)
+    include(projName)
+    findProject(":$projName")!!.projectDir = file(name)
+}
