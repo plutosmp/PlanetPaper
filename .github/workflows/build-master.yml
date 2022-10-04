@@ -5,14 +5,15 @@ on:
         - "master"
 
 env:
-  BUILD_NUMBER: "${{ env.GITHUB_RUN_NUMBER }}"
   MC_VERSION: "1.19.2"
 jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
       - name: Test
-        run: echo "env#GITHUB_RUN_NUMBER ${{ env.GITHUB_RUN_NUMBER }} BUILD_NUMBER ${{ env.BUILD_NUMBER }}"
+        run: "export BUILD_NUMBER=${{ env.github.run_number }}"
+      - name: Test
+        run: echo "env#GITHUB_RUN_NUMBER ${{ env.github.run_number }}"
       - name: Checkout Git Repository
         uses: actions/checkout@v3.0.2
       - name: Validate Gradle Wrapper
@@ -33,7 +34,7 @@ jobs:
       - name: Build a paperclip jar
         run: "./gradlew createReobfPaperclipJar --stacktrace --no-daemon"
       - name: Rename Jar
-        run: "mv build/libs/PlanetPaper-Server-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar PlanetPaper-${{ env.MC_VERSION }}-${{ env.GITHUB_RUN_NUMBER }}.jar"
+        run: "mv build/libs/PlanetPaper-Server-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar PlanetPaper-${{ env.MC_VERSION }}-${{ env.github.run_number }}.jar"
       - name: Upload Artifacts
         uses: actions/upload-artifact@main
         with:
@@ -42,7 +43,7 @@ jobs:
       - name: Release Artifacts
         uses: marvinpinto/action-automatic-releases@latest
         with:
-          title: "[${{ GITHUB_REF_NAME }}/${{ MC_VERSION }}] #${{ env.GITHUB_RUN_NUMBER }}"
+          title: "[${{ github.ref_name }}/${{ env.MC_VERSION }}] #${{ env.github.run_number }}"
           automatic_release_tag: release-${{ env.workflow }}
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           files: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.GITHUB_RUN_NUMBER }}.jar.jar
