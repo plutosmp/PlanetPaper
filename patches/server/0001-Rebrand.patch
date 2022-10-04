@@ -5,20 +5,25 @@ Subject: [PATCH] Rebrand
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 44e0f265432487fe5c3c00c5245041298ade16a0..dfaeb397d36fd7651c1778a94fc3f561426c75f7 100644
+index 44e0f265432487fe5c3c00c5245041298ade16a0..c27d069e05483fbf8174b0d246edcbdf47284b8c 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
-@@ -9,8 +9,7 @@ plugins {
+@@ -9,8 +9,12 @@ plugins {
  }
  
  dependencies {
 -    implementation(project(":paper-api"))
 -    implementation(project(":paper-mojangapi"))
 +    implementation(project(":PlanetPaper-API")) // PlanetPaper
++    // PlanetPaper start
++    implementation("io.papermc.paper:paper-mojangapi:1.19.2-R0.1-SNAPSHOT") {
++        exclude("io.papermc.paper", "paper-api")
++    }
++    // PlanetPaper end
      // Paper start
      implementation("org.jline:jline-terminal-jansi:3.21.0")
      implementation("net.minecrell:terminalconsoleappender:1.3.0")
-@@ -58,13 +57,13 @@ tasks.jar {
+@@ -58,13 +62,13 @@ tasks.jar {
      manifest {
          val git = Git(rootProject.layout.projectDirectory.path)
          val gitHash = git("rev-parse", "--short=7", "HEAD").getText().trim()
