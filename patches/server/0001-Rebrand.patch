@@ -110,7 +110,7 @@ index 111f8276f26350a5c62a7b8577b4598978b5355d..b3167b95be5675bf36f4697e8b7479ab
      private final String bukkitVersion = Versioning.getBukkitVersion();
      private final Logger logger = Logger.getLogger("Minecraft");
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
-index 774556a62eb240da42e84db4502e2ed43495be17..c854b65aac04839c766d3811d348976b08f8ac56 100644
+index 774556a62eb240da42e84db4502e2ed43495be17..c7f3c77a769259e93586b7930a66e71ed8dba3a6 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 +++ b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 @@ -11,7 +11,7 @@ public final class Versioning {
@@ -118,7 +118,7 @@ index 774556a62eb240da42e84db4502e2ed43495be17..c854b65aac04839c766d3811d348976b
          String result = "Unknown-Version";
  
 -        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/io.papermc.paper/paper-api/pom.properties");
-+        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/top.plutomc.planetpaper/paper-api/pom.properties");
++        InputStream stream = Bukkit.class.getClassLoader().getResourceAsStream("META-INF/maven/top.plutomc.planetpaper/PlanetPaper-API/pom.properties");
          Properties properties = new Properties();
  
          if (stream != null) {
