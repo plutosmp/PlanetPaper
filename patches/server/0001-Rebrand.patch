@@ -5,7 +5,7 @@ Subject: [PATCH] Rebrand
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 44e0f265432487fe5c3c00c5245041298ade16a0..974c92ee59590dc87ddfbd888f214ba223f67f93 100644
+index 44e0f265432487fe5c3c00c5245041298ade16a0..dfaeb397d36fd7651c1778a94fc3f561426c75f7 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -9,8 +9,7 @@ plugins {
@@ -23,7 +23,7 @@ index 44e0f265432487fe5c3c00c5245041298ade16a0..974c92ee59590dc87ddfbd888f214ba2
          val git = Git(rootProject.layout.projectDirectory.path)
          val gitHash = git("rev-parse", "--short=7", "HEAD").getText().trim()
 -        val implementationVersion = System.getenv("BUILD_NUMBER") ?: "\"$gitHash\""
-+        val implementationVersion = System.getenv("BUILD_NUMBER") ?: "$gitHash" // PlanetPaper
++        val implementationVersion = System.getenv("BUILD_NUMBER") ?: gitHash // PlanetPaper
          val date = git("show", "-s", "--format=%ci", gitHash).getText().trim() // Paper
          val gitBranch = git("rev-parse", "--abbrev-ref", "HEAD").getText().trim() // Paper
          attributes(
