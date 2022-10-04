@@ -30,7 +30,7 @@ jobs:
         run: |
           echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
           export BUILD_NUMBER=${{ env.workflow }}
-          git config --global user.name "PlanetPaper CI"
+          git config --global user.name "planetpaper CI"
           git config --global user.email "planetpaper-ci@github.com"
           chmod u+x gradlew
       - name: Apply patches
@@ -44,17 +44,17 @@ jobs:
           export BUILD_NUMBER=${{ env.workflow }}
           ./gradlew createReobfPaperclipJar --stacktrace --no-daemon
       - name: Rename Jar
-        run: "mv build/libs/PlanetPaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar"
+        run: "mv build/libs/planetpaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar build/libs/planetpaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar"
       - name: Upload Artifacts
         uses: actions/upload-artifact@main
         with:
           name: Artifacts
-          path: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
+          path: build/libs/planetpaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
       - name: Release Artifacts
         uses: marvinpinto/action-automatic-releases@latest
         with:
           title: "[${{ env.ref }}/${{ env.MC_VERSION }}] #${{ env.workflow }}"
           automatic_release_tag: ${{ env.ref }}-1.19.2-${{ env.workflow }}
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          files: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
+          files: build/libs/planetpaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
           prerelease: false
