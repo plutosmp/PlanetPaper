@@ -37,7 +37,7 @@ jobs:
       - name: Build a paperclip jar
         run: "./gradlew createReobfPaperclipJar --stacktrace --no-daemon"
       - name: Rename Jar
-        run: "mv build/libs/PlantPaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar"
+        run: "mv build/libs/PlanetPaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar"
       - name: Upload Artifacts
         uses: actions/upload-artifact@main
         with:

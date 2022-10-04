@@ -5,5 +5,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = "PlantPaper"
+rootProject.name = "PlanetPaper"
 include("PlanetPaper-API", "PlanetPaper-Server")
