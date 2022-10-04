@@ -15,8 +15,6 @@ jobs:
           echo "workflow=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
           echo "ref=$GITHUB_REF_NAME" >> $GITHUB_ENV
           export BUILD_NUMBER=${{ env.workflow }}
-      - name: Test
-        run: echo "env#GITHUB_RUN_NUMBER ${{ env.workflow }} ${{ env.ref }}"
       - name: Checkout Git Repository
         uses: actions/checkout@v3.0.2
       - name: Validate Gradle Wrapper
