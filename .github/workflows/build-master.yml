@@ -1,0 +1,49 @@
+name: Build (master/1.19.2)
+on:
+  push:
+      branches:
+        - "master"
+
+env:
+  BUILD_NUMBER: "${{ env.GITHUB_RUN_NUMBER }}"
+  MC_VERSION: "1.19.2"
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Test
+        run: echo "env#GITHUB_RUN_NUMBER ${{ env.GITHUB_RUN_NUMBER }} BUILD_NUMBER ${{ env.BUILD_NUMBER }}"
+      - name: Checkout Git Repository
+        uses: actions/checkout@v3.0.2
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1.0.4
+      - name: Set up JDK
+        uses: graalvm/setup-graalvm@v1
+        with:
+          version: "latest"
+          java-version: 17
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Configure Git
+        run: |
+          git config --global user.name "PlanetPaper CI"
+          git config --global user.email "planetpaper-ci@github.com"
+          chmod u+x gradlew
+      - name: Apply patches
+        run: "./gradlew applyPatches --stacktrace --no-daemon"
+      - name: Build a paperclip jar
+        run: "./gradlew createReobfPaperclipJar --stacktrace --no-daemon"
+      - name: Rename Jar
+        run: "mv build/libs/PlanetPaper-Server-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar PlanetPaper-${{ env.MC_VERSION }}-${{ env.GITHUB_RUN_NUMBER }}.jar"
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@main
+        with:
+          name: Artifacts
+          path: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.GITHUB_RUN_NUMBER }}.jar
+      - name: Release Artifacts
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          title: "[${{ GITHUB_REF_NAME }}/${{ MC_VERSION }}] #${{ env.GITHUB_RUN_NUMBER }}"
+          automatic_release_tag: release-${{ env.workflow }}
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          files: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.GITHUB_RUN_NUMBER }}.jar.jar
+          prerelease: false
