@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     remapper("net.fabricmc:tiny-remapper:0.8.2:fat")
-    decompiler("org.quiltmc:quiltflower:1.8.1")
+    decompiler("net.minecraftforge:forgeflower:1.5.605.7")
     paperclip("io.papermc:paperclip:3.0.2")
 }
 
@@ -48,7 +48,7 @@ paperweight {
     serverProject.set(project(":planetpaper-server"))
 
     remapRepo.set("https://maven.fabricmc.net/")
-    decompileRepo.set("https://maven.quiltmc.org/")
+    decompileRepo.set("https://files.minecraftforge.net/maven/")
 
     usePaperUpstream(providers.gradleProperty("paperRef")) {
         withPaperPatcher {
