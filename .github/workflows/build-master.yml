@@ -46,7 +46,7 @@ jobs:
       - name: Release Artifacts
         uses: marvinpinto/action-automatic-releases@latest
         with:
-          title: "[${{ env.ref }}}/${{ env.MC_VERSION }}] #${{ env.workflow }}"
+          title: "[${{ env.ref }}/${{ env.MC_VERSION }}] #${{ env.workflow }}"
           automatic_release_tag: ${{ env.ref }}-1.19.2-${{ env.workflow }}
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           files: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
