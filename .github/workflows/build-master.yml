@@ -13,9 +13,10 @@ jobs:
       - name: Set env
         run: |
           echo "workflow=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
+          echo "ref=$GITHUB_REF_NAME" >> $GITHUB_ENV
           export BUILD_NUMBER=${{ env.workflow }}
       - name: Test
-        run: echo "env#GITHUB_RUN_NUMBER ${{ env.workflow }}"
+        run: echo "env#GITHUB_RUN_NUMBER ${{ env.workflow }} ${{ env.ref }}}"
       - name: Checkout Git Repository
         uses: actions/checkout@v3.0.2
       - name: Validate Gradle Wrapper
@@ -36,17 +37,17 @@ jobs:
       - name: Build a paperclip jar
         run: "./gradlew createReobfPaperclipJar --stacktrace --no-daemon"
       - name: Rename Jar
-        run: "mv build/libs/PlantPaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar PlanetPaper-${{ env.MC_VERSION }}-${{ env.workflow }}.jar"
+        run: "mv build/libs/PlantPaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar"
       - name: Upload Artifacts
         uses: actions/upload-artifact@main
         with:
           name: Artifacts
-          path: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.workflow }}.jar
+          path: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
       - name: Release Artifacts
         uses: marvinpinto/action-automatic-releases@latest
         with:
-          title: "[${{ github.ref_name }}/${{ env.MC_VERSION }}] #${{ env.workflow }}"
-          automatic_release_tag: 1.19.2-${{ env.workflow }}
+          title: "[${{ env.ref }}}/${{ env.MC_VERSION }}] #${{ env.workflow }}"
+          automatic_release_tag: ${{ env.ref }}-1.19.2-${{ env.workflow }}
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          files: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.workflow }}.jar"
+          files: build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
           prerelease: false
