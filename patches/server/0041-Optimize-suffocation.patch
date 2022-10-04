@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GerryYuu <yuu8583@proton.me>
+Date: Wed, 5 Oct 2022 00:32:51 +0800
+Subject: [PATCH] Optimize suffocation
+
+Powered By Pufferfish. (https://github.com/pufferfish-gg/Pufferfish.git)
+Licensed under GPL-3.0
+
+The isInWall check to determine suffocation is quite expensive, and
+often is completely unnecessary to check. We do two things here to
+improve this:
+
+1. We only check for suffocation once per 20 ticks. The maximum
+no-damage ticks value means that this change should be extremely
+difficult, if not impossible, for players to notice.
+
+2. We additionally execute a check to see if the player can even take
+damage in the first place. This check doesn't improve performance much
+but is so much cheaper than the suffocation check that it's worth
+keeping it.
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index eedc73e0756c8d76b656a4fca9860b47124409c3..7b8caf42fa305a44011f20617c895f7f41eb98ca 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -379,6 +379,15 @@ public abstract class LivingEntity extends Entity {
+         return Mth.lerp(tickDelta, this.swimAmountO, this.swimAmount);
+     }
+ 
++    // Pufferfish start - optimize suffocation
++    public boolean couldPossiblyBeHurt(float amount) {
++        if ((float) this.invulnerableTime > (float) this.invulnerableDuration / 2.0F && amount <= this.lastHurt) {
++            return false;
++        }
++        return true;
++    }
++    // Pufferfish end
++
+     @Override
+     public void baseTick() {
+         this.oAttackAnim = this.attackAnim;
+@@ -399,7 +408,8 @@ public abstract class LivingEntity extends Entity {
+         if (this.isAlive()) {
+             boolean flag = this instanceof net.minecraft.world.entity.player.Player;
+ 
+-            if (this.isInWall()) {
++            // if (this.isInWall()) {
++            if ((tickCount % 10 == 0 && couldPossiblyBeHurt(1.0F) && this.isInWall())) { // Pufferfish - optimize suffocation
+                 this.hurt(DamageSource.IN_WALL, 1.0F);
+             } else if (flag && !this.level.getWorldBorder().isWithinBounds(this.getBoundingBox())) {
+                 double d0 = this.level.getWorldBorder().getDistanceToBorder(this) + this.level.getWorldBorder().getDamageSafeZone();
