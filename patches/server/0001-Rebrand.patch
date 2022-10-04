@@ -40,7 +40,7 @@ index 44e0f265432487fe5c3c00c5245041298ade16a0..c27d069e05483fbf8174b0d246edcbdf
              "Specification-Title" to "Bukkit",
              "Specification-Version" to project.version,
 diff --git a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java b/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
-index bf42969859545a8a520923ef1836ffa4a5cc24a0..326188e9f88a656ebc9ea780f39a9f3fcb29c652 100644
+index bf42969859545a8a520923ef1836ffa4a5cc24a0..a4b2ac8da751e4912b456725bb49ba0bb3133bf4 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
 @@ -20,7 +20,7 @@ import java.util.stream.StreamSupport;
@@ -63,17 +63,17 @@ index bf42969859545a8a520923ef1836ffa4a5cc24a0..326188e9f88a656ebc9ea780f39a9f3f
          final Component history = getHistory();
  
          return history != null ? TextComponent.ofChildren(updateMessage, Component.newline(), history) : updateMessage;
-@@ -55,7 +55,8 @@ public class PaperVersionFetcher implements VersionFetcher {
+@@ -55,14 +55,18 @@ public class PaperVersionFetcher implements VersionFetcher {
      }
  
      private static Component getUpdateStatusMessage(@Nonnull String repo, @Nonnull String branch, @Nonnull String versionInfo) {
--        int distance;
 +        // PlanetPaper - we dont need this
-+        /*int distance;
-         try {
+         int distance;
+-        try {
++        /*try {
              int jenkinsBuild = Integer.parseInt(versionInfo);
              distance = fetchDistanceFromSiteApi(jenkinsBuild, getMinecraftVersion());
-@@ -63,6 +64,9 @@ public class PaperVersionFetcher implements VersionFetcher {
+         } catch (NumberFormatException ignored) {
              versionInfo = versionInfo.replace("\"", "");
              distance = fetchDistanceFromGitHub(repo, branch, versionInfo);
          }
