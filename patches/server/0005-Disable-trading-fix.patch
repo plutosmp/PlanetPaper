@@ -5,7 +5,7 @@ Subject: [PATCH] Disable trading fix
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index b396e9b35f315db37ba070ad4baeec1f098d0cb8..b7e5231fd05ce11da72fade93687e0b988d2b3b1 100644
+index f1a27e0ea0569438032ff6c5a777a35be4e501ef..d099e8972a29ab3fb09dd8399d1b70c92db27d47 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -2617,9 +2617,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
