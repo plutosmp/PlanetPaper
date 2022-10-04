@@ -42,7 +42,7 @@ jobs:
         run: |
           echo "BUILD_NUMBER=$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
           export BUILD_NUMBER=${{ env.workflow }}
-          "./gradlew createReobfPaperclipJar --stacktrace --no-daemon"
+          ./gradlew createReobfPaperclipJar --stacktrace --no-daemon
       - name: Rename Jar
         run: "mv build/libs/PlanetPaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar build/libs/PlanetPaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar"
       - name: Upload Artifacts
