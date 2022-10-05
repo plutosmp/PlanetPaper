@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GerryYuu <yuu8583@proton.me>
+Date: Wed, 5 Oct 2022 09:40:40 +0800
+Subject: [PATCH] Lithium Patch - Optimized SortedArraySet
+
+Powered By lithium-fabric. (https://github.com/CaffeineMC/lithium-fabric, Yarn Mappings)
+Licensed under LGPL-3.0
+
+diff --git a/src/main/java/net/minecraft/util/SortedArraySet.java b/src/main/java/net/minecraft/util/SortedArraySet.java
+index 5fcbb4fd003603408c48408230a17b692fabd519..381112b579d4e2f68e06de2d522acd2fd1ef912b 100644
+--- a/src/main/java/net/minecraft/util/SortedArraySet.java
++++ b/src/main/java/net/minecraft/util/SortedArraySet.java
+@@ -6,6 +6,7 @@ import java.util.Arrays;
+ import java.util.Comparator;
+ import java.util.Iterator;
+ import java.util.NoSuchElementException;
++import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+ 
+ public class SortedArraySet<T> extends AbstractSet<T> {
+@@ -22,8 +23,9 @@ public class SortedArraySet<T> extends AbstractSet<T> {
+             this.contents = (T[])castRawArray(new Object[initialCapacity]);
+         }
+     }
++    // PlanetPaper start
+     // Paper start - optimise removeIf
+-    @Override
++    /*@Override
+     public boolean removeIf(java.util.function.Predicate<? super T> filter) {
+         // prev. impl used an iterator, which could be n^2 and creates garbage
+         int i = 0, len = this.size;
+@@ -55,8 +57,37 @@ public class SortedArraySet<T> extends AbstractSet<T> {
+         Arrays.fill(backingArray, lastIndex, len, null);
+         this.size = lastIndex;
+         return true;
+-    }
++    }*/
+     // Paper end - optimise removeIf
++    public boolean removeIf(Predicate<? super T> filter) {
++        T[] arr = this.contents;
++
++        int writeLim = this.size;
++        int writeIdx = 0;
++
++        for (int readIdx = 0; readIdx < writeLim; readIdx++) {
++            T obj = arr[readIdx];
++
++            // If the filter does not pass the object, simply skip over it. The write pointer will
++            // not be advanced and the next element to pass will instead take this one's place.
++            if (filter.test(obj)) {
++                continue;
++            }
++
++            // If the read and write pointers are the same, then no removals have occurred so far. This
++            // allows us to skip copying unchanged values back into the array.
++            if (writeIdx != readIdx) {
++                arr[writeIdx] = obj;
++            }
++
++            writeIdx++;
++        }
++
++        this.size = writeIdx;
++
++        return writeLim != writeIdx;
++    }
++    // PlanetPaper end
+ 
+     public static <T extends Comparable<T>> SortedArraySet<T> create() {
+         return create(10);
