@@ -5,7 +5,7 @@ Subject: [PATCH] Add built-in Kotlin runtime
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index 4296b82205eba2898339a568ed7d95d17ec678e1..74fe24497529b6130067046b847cc231b94e411a 100644
+index 4296b82205eba2898339a568ed7d95d17ec678e1..902f06aaf5d1d8bc9addd10991cf1c7fda80b444 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -6,6 +6,7 @@ plugins {
@@ -24,11 +24,3 @@ index 4296b82205eba2898339a568ed7d95d17ec678e1..74fe24497529b6130067046b847cc231
  }
  
  val craftbukkitPackageVersion = "1_19_R1" // Paper
-@@ -94,6 +96,7 @@ relocation {
-     relocate("org.bukkit.craftbukkit" to "org.bukkit.craftbukkit.v$craftbukkitPackageVersion") {
-         exclude("org.bukkit.craftbukkit.Main*")
-     }
-+    relocate("kotlin" to "top.plutomc.planetpaper.runtime.kotlin") // PlanetPaper
- }
- 
- tasks.shadowJar {
