@@ -9,10 +9,10 @@ Original license: GNU Lesser General Public License v3.0
 Original project: https://github.com/CaffeineMC/lithium-fabric (Yarn mappings)
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2f9ec7cc09e4668eaf73dff73d51be3cd306d926..fbfe429c38999cf9e04391a4c4bed61065f3cc04 100644
+index 985e2e2ebe3bc6860025e8f5ceffc0dacd4c4166..5d6e17490bd2ebff1a42c4ac052d975d35762071 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -2555,39 +2555,64 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -2556,39 +2556,64 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
          return !this.isRemoved();
      }
  

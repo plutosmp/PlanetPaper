@@ -5,7 +5,7 @@ Subject: [PATCH] Disable portal and duper fix
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 008bd65d838819431a0823c6ac5925774bd155a1..d7f8a138eead048f68040f27e0b8264c6ffa9124 100644
+index 756b8e68c6b7c21c1ef78b68da9e41db4828c7c9..79b404bf396f8d58dfdc24fd3782513d1b24a7df 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -512,6 +512,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
@@ -25,7 +25,7 @@ index 008bd65d838819431a0823c6ac5925774bd155a1..d7f8a138eead048f68040f27e0b8264c
      // Paper end - make end portalling safe
  
      public Entity(EntityType<?> type, Level world) {
-@@ -2899,7 +2902,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -2900,7 +2903,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
              }
  
              this.processPortalCooldown();
