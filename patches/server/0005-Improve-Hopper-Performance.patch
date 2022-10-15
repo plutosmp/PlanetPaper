@@ -1,0 +1,160 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Aikar <aikar@aikar.co>
+Date: Fri, 29 May 2015 21:58:24 -0400
+Subject: [PATCH] Improve Hopper Performance
+
+Only do an item "suck in" action once per second
+
+diff --git a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+index fcc5444a1268931a0fd2df1e6bbbc17cfd5a61e0..472c0d1ce2a857cc84ed67e808a5a166f68b7ff1 100644
+--- a/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
++++ b/src/main/java/net/minecraft/world/entity/item/ItemEntity.java
+@@ -19,11 +19,13 @@ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.entity.vehicle.MinecartHopper;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.gameevent.GameEvent;
++import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
+ // CraftBukkit start
+ import net.minecraft.server.MinecraftServer;
+@@ -197,10 +199,23 @@ public class ItemEntity extends Entity {
+                 // CraftBukkit end
+                 this.discard();
+             }
++            markHopperCarts(); // EMC
+ 
+         }
+     }
+ 
++    // EMC start
++    private void markHopperCarts() {
++        if (this.isAlive() && this.onGround && this.age < 20 * 60 && this.age % 20 == 0) {
++            AABB aabb = this.getBoundingBox().inflate(32, 4, 32);
++            for (Entity entity : this.level.getEntities(this, aabb)) {
++                if (entity instanceof MinecartHopper) {
++                    ((MinecartHopper) entity).pickupImmunity = MinecraftServer.currentTick + 200;
++                }
++            }
++        }
++    }
++    // EMC end
+     // Spigot start - copied from above
+     @Override
+     public void inactiveTick() {
+@@ -221,6 +236,7 @@ public class ItemEntity extends Entity {
+             // CraftBukkit end
+             this.discard();
+         }
++        markHopperCarts(); // EMC
+     }
+     // Spigot end
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java
+index 70f1916185b79bbb9f033f4ef8119d7b17a13ef8..5e637111bc53c50add0bf687ed81e1e7cccadb2d 100644
+--- a/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java
++++ b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java
+@@ -22,6 +22,7 @@ public class MinecartHopper extends AbstractMinecartContainer implements Hopper
+     private boolean enabled = true;
+     public int cooldownTime = -1;
+     private final BlockPos lastPosition = BlockPos.ZERO;
++    public int pickupImmunity = 0; // EMC
+ 
+     public MinecartHopper(EntityType<? extends MinecartHopper> type, Level world) {
+         super(type, world);
+@@ -158,5 +159,12 @@ public class MinecartHopper extends AbstractMinecartContainer implements Hopper
+         this.activatedImmunityTick = Math.max(this.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 20);
+     }
+     // Paper end
++    // EMC start
++    private long tickAttempts = 0;
++    @Override
++    public long getAndIncrementAttemptCounter() {
++        return tickAttempts++;
++    }
++    // EMC stop
+ 
+ }
+diff --git a/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java.rej b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java.rej
+new file mode 100644
+index 0000000000000000000000000000000000000000..e554694779e5130cf1a2e4de79eeebea428244f0
+--- /dev/null
++++ b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java.rej
+@@ -0,0 +1,9 @@
++diff a/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java	(rejected hunks)
++@@ -22,6 +22,7 @@ public class MinecartHopper extends AbstractMinecartContainer implements Hopper
++     private boolean enabled = true;
++     private int cooldownTime = -1;
++     private final BlockPos lastPosition = BlockPos.ZERO;
+++    public int pickupImmunity = 0; // EMC
++ 
++     public MinecartHopper(EntityType<? extends MinecartHopper> type, Level world) {
++         super(type, world);
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/Hopper.java b/src/main/java/net/minecraft/world/level/block/entity/Hopper.java
+index 6a1405a8630e90db3b5a3c9152259ba6f5f0c784..996b10d0e7414b89cb44caa6f40afe83c764689c 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/Hopper.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/Hopper.java
+@@ -15,6 +15,7 @@ public interface Hopper extends Container {
+     }
+ 
+     default net.minecraft.core.BlockPos getBlockPosition() { return new net.minecraft.core.BlockPos(getLevelX(), getLevelY(), getLevelZ()); } // Paper
++    long getAndIncrementAttemptCounter(); // EMC
+ 
+     double getLevelX();
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+index ccad692aba2ed77259f6814d88f01b91ed9d229b..c9a238e3d2fa8deffd574bbb63bf8a5d7a91b350 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -10,6 +10,7 @@ import net.minecraft.core.Direction;
+ import net.minecraft.core.NonNullList;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.chat.Component;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.world.CompoundContainer;
+ import net.minecraft.world.Container;
+ import net.minecraft.world.ContainerHelper;
+@@ -115,6 +116,21 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         return ContainerHelper.removeItem(this.getItems(), slot, amount);
+     }
+ 
++    // EMC start
++    private long tickAttempts = 0;
++    @Override
++    public long getAndIncrementAttemptCounter() {
++        return tickAttempts++;
++    }
++    private static boolean shouldSuckin(Hopper hopper) {
++        if (hopper instanceof MinecartHopper && ((MinecartHopper) hopper).pickupImmunity > MinecraftServer.currentTick) {
++            return true;
++        }
++
++        final int hopperId = (int) hopper.getLevelX() + (int) hopper.getLevelY() + (int) hopper.getLevelZ();
++        return (hopper.getAndIncrementAttemptCounter() + hopperId) % 20 == 0;
++    }
++    // EMC end
+     @Override
+     public void setItem(int slot, ItemStack stack) {
+         this.unpackLootTable((Player) null);
+@@ -463,7 +479,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+                 }
+                 // Paper end
+             });
+-        } else {
++        } else if (shouldSuckin(hopper)) { // EMC
+             Iterator iterator = HopperBlockEntity.getItemsAtAndAbove(world, hopper).iterator();
+ 
+             ItemEntity entityitem;
+@@ -478,6 +494,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+             return true;
+         }
++        return false; // EMC
+     }
+ 
+     // Paper - method unused as logic is inlined above
