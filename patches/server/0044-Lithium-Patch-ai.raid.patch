@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: nostalgic853 <yuu8583@proton.me>
+Date: Sat, 15 Oct 2022 14:11:49 +0800
+Subject: [PATCH] Lithium Patch - ai.raid
+
+Original code by CaffeineMC, licensed under GNU Lesser General Public License v3.0
+You can find the original code on https://github.com/CaffeineMC/lithium-fabric (Yarn mappings)
+
+diff --git a/src/main/java/net/minecraft/world/entity/raid/Raid.java b/src/main/java/net/minecraft/world/entity/raid/Raid.java
+index 6a0a1731fd6804eb69d3641213712d31bce085b2..edbef88724aa18fa84118644b8ff2077d2f9bad7 100644
+--- a/src/main/java/net/minecraft/world/entity/raid/Raid.java
++++ b/src/main/java/net/minecraft/world/entity/raid/Raid.java
+@@ -107,6 +107,20 @@ public class Raid {
+     private Raid.RaidStatus status;
+     private int celebrationTicks;
+     private Optional<BlockPos> waveSpawnPos;
++    // PlanetPaper start - cache the banner.
++    private static final ItemStack CACHED_LEADER_BANNER;
++
++    static {
++        CACHED_LEADER_BANNER = new ItemStack(Items.WHITE_BANNER);
++        CompoundTag nbttagcompound = new CompoundTag();
++        ListTag nbttaglist = (new BannerPattern.Builder()).addPattern(BannerPatterns.RHOMBUS_MIDDLE, DyeColor.CYAN).addPattern(BannerPatterns.STRIPE_BOTTOM, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.STRIPE_CENTER, DyeColor.GRAY).addPattern(BannerPatterns.BORDER, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.STRIPE_MIDDLE, DyeColor.BLACK).addPattern(BannerPatterns.HALF_HORIZONTAL, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.CIRCLE_MIDDLE, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.BORDER, DyeColor.BLACK).toListTag();
++
++        nbttagcompound.put("Patterns", nbttaglist);
++        BlockItem.setBlockEntityData(CACHED_LEADER_BANNER, BlockEntityType.BANNER, nbttagcompound);
++        CACHED_LEADER_BANNER.hideTooltipPart(ItemStack.TooltipPart.ADDITIONAL);
++        CACHED_LEADER_BANNER.setHoverName(Component.translatable("block.minecraft.ominous_banner").withStyle(ChatFormatting.GOLD));
++    }
++    // PlanetPaper end
+ 
+     public Raid(int id, ServerLevel world, BlockPos pos) {
+         this.raidEvent = new ServerBossEvent(Raid.RAID_NAME_COMPONENT, BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_10);
+@@ -269,7 +283,16 @@ public class Raid {
+         this.status = Raid.RaidStatus.STOPPED;
+     }
+ 
++    private boolean isBarDirty = false; // PlanetPaper
++
+     public void tick() {
++        //PlanerPaper start
++        if (this.isBarDirty) {
++            this.raidEvent.setProgress(Mth.clamp(this.getHealthOfLivingRaiders() / this.totalHealth, 0.0F, 1.0F));
++            this.isBarDirty = false;
++        }
++        // PlanetPaper end
++
+         if (!this.isStopped()) {
+             if (this.status == Raid.RaidStatus.ONGOING) {
+                 boolean flag = this.active;
+@@ -626,7 +649,7 @@ public class Raid {
+     }
+ 
+     public void updateBossbar() {
+-        this.raidEvent.setProgress(Mth.clamp(this.getHealthOfLivingRaiders() / this.totalHealth, 0.0F, 1.0F));
++        this.isBarDirty = true; // PlanetPaper
+     }
+ 
+     public float getHealthOfLivingRaiders() {
+@@ -678,15 +701,7 @@ public class Raid {
+     }
+ 
+     public static ItemStack getLeaderBannerInstance() {
+-        ItemStack itemstack = new ItemStack(Items.WHITE_BANNER);
+-        CompoundTag nbttagcompound = new CompoundTag();
+-        ListTag nbttaglist = (new BannerPattern.Builder()).addPattern(BannerPatterns.RHOMBUS_MIDDLE, DyeColor.CYAN).addPattern(BannerPatterns.STRIPE_BOTTOM, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.STRIPE_CENTER, DyeColor.GRAY).addPattern(BannerPatterns.BORDER, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.STRIPE_MIDDLE, DyeColor.BLACK).addPattern(BannerPatterns.HALF_HORIZONTAL, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.CIRCLE_MIDDLE, DyeColor.LIGHT_GRAY).addPattern(BannerPatterns.BORDER, DyeColor.BLACK).toListTag();
+-
+-        nbttagcompound.put("Patterns", nbttaglist);
+-        BlockItem.setBlockEntityData(itemstack, BlockEntityType.BANNER, nbttagcompound);
+-        itemstack.hideTooltipPart(ItemStack.TooltipPart.ADDITIONAL);
+-        itemstack.setHoverName(Component.translatable("block.minecraft.ominous_banner").withStyle(ChatFormatting.GOLD));
+-        return itemstack;
++        return CACHED_LEADER_BANNER; // PlanetPaper - cache the banner.
+     }
+ 
+     @Nullable
