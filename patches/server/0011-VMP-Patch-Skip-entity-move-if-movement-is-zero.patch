@@ -11,10 +11,10 @@ You can find the original code on https://github.com/RelativityMC/VMP-fabric (Ya
 This patch file is from Mirai: https://github.com/etil2jz/Mirai
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 79b404bf396f8d58dfdc24fd3782513d1b24a7df..985e2e2ebe3bc6860025e8f5ceffc0dacd4c4166 100644
+index 649dd0e7026b185a4f6fa021b700b4c6b4645158..008adc20ad3d65b761c2a95077cad70fb2f059a2 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -300,6 +300,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -299,6 +299,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      public float yRotO;
      public float xRotO;
      private AABB bb;
@@ -22,7 +22,7 @@ index 79b404bf396f8d58dfdc24fd3782513d1b24a7df..985e2e2ebe3bc6860025e8f5ceffc0da
      public boolean onGround;
      public boolean horizontalCollision;
      public boolean verticalCollision;
-@@ -1004,6 +1005,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -1002,6 +1003,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      // Paper end - detailed watchdog information
  
      public void move(MoverType movementType, Vec3 movement) {
@@ -35,7 +35,7 @@ index 79b404bf396f8d58dfdc24fd3782513d1b24a7df..985e2e2ebe3bc6860025e8f5ceffc0da
          // Paper start - detailed watchdog information
          io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
          synchronized (this.posLock) {
-@@ -3728,6 +3735,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -3726,6 +3733,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
  
      public final void setBoundingBox(AABB boundingBox) {

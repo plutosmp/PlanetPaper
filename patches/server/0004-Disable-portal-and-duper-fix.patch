@@ -5,10 +5,10 @@ Subject: [PATCH] Disable portal and duper fix
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 756b8e68c6b7c21c1ef78b68da9e41db4828c7c9..79b404bf396f8d58dfdc24fd3782513d1b24a7df 100644
+index a1421689445b9df3f25889845c21cf37a439afe2..649dd0e7026b185a4f6fa021b700b4c6b4645158 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -512,6 +512,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -511,6 +511,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
      // Paper end - optimise entity tracking
      // Paper start - make end portalling safe
@@ -17,7 +17,7 @@ index 756b8e68c6b7c21c1ef78b68da9e41db4828c7c9..79b404bf396f8d58dfdc24fd3782513d
      public BlockPos portalBlock;
      public ServerLevel portalWorld;
      public void tickEndPortal() {
-@@ -540,6 +542,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -539,6 +541,7 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
          }
          this.teleportTo(worldserver, null);
      }
@@ -25,7 +25,7 @@ index 756b8e68c6b7c21c1ef78b68da9e41db4828c7c9..79b404bf396f8d58dfdc24fd3782513d
      // Paper end - make end portalling safe
  
      public Entity(EntityType<?> type, Level world) {
-@@ -2900,7 +2903,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -2898,7 +2901,8 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
              }
  
              this.processPortalCooldown();
@@ -36,7 +36,7 @@ index 756b8e68c6b7c21c1ef78b68da9e41db4828c7c9..79b404bf396f8d58dfdc24fd3782513d
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
-index ef07967b64180c54338b8fb2ba1780adec87f333..2bd3ba272eb35f574bbda1ee5de2c5bf91f37c90 100644
+index b2d1a17867cdbaad0c6e5c2376c716f9461af124..3c12155a1d590e28c0b3dfd810d4b0ff40e42b63 100644
 --- a/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/item/FallingBlockEntity.java
 @@ -61,7 +61,7 @@ public class FallingBlockEntity extends Entity {

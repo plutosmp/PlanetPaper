@@ -7,10 +7,10 @@ Powered By Pufferfish. (https://github.com/pufferfish-gg/Pufferfish)
 Licensed under GPL-3.0
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 5d6e17490bd2ebff1a42c4ac052d975d35762071..37d36cc2b2f1994656e03f31608430bdfd061559 100644
+index cbbe6b0284887cacefbe5b368ebe7946b0625b10..1210a66a08914b49db2a501701eb6df75f8d6288 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -4054,16 +4054,18 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4052,16 +4052,18 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
      }
  
      public boolean updateFluidHeightAndDoFluidPushing(TagKey<Fluid> tag, double speed) {
@@ -36,7 +36,7 @@ index 5d6e17490bd2ebff1a42c4ac052d975d35762071..37d36cc2b2f1994656e03f31608430bd
              double d1 = 0.0D;
              boolean flag = this.isPushedByFluid();
              boolean flag1 = false;
-@@ -4071,14 +4073,61 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4069,14 +4071,61 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
              int k1 = 0;
              BlockPos.MutableBlockPos blockposition_mutableblockposition = new BlockPos.MutableBlockPos();
  
@@ -104,7 +104,7 @@ index 5d6e17490bd2ebff1a42c4ac052d975d35762071..37d36cc2b2f1994656e03f31608430bd
  
                              if (d2 >= axisalignedbb.minY) {
                                  flag1 = true;
-@@ -4100,9 +4149,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
+@@ -4098,9 +4147,12 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource {
                                  // CraftBukkit end
                              }
                          }
