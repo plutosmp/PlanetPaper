@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: violetc <admin@s-yh-china.com>
+Date: Fri, 29 Oct 2021 16:59:07 +0800
+Subject: [PATCH] Leaves Patch - Server Config
+
+Powered By Leaves. (https://github.com/LeavesMC/Leaves)
+Licensed under GPL-3.0.
+
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index e43fef0152468944d8a33036344a43e95fe58476..1b311ecc6a2e4ccb7437eb74dcb7b3a881d035fd 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -1968,6 +1968,14 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+             throw new UnsupportedOperationException("Not supported yet.");
+         }
+         // Paper end
++		
++		// Leaves start - Not supported yet too
++		@NotNull
++		public org.bukkit.configuration.file.YamlConfiguration getLeavesConfig()
++        {
++            throw new UnsupportedOperationException("Not supported yet.");
++        }
++		// Leaves end - Not supported yet too
+ 
+         /**
+          * Sends the component to the player
