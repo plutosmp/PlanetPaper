@@ -1,0 +1,135 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: nostalgic853 <yuu8583@proton.me>
+Date: Sat, 15 Oct 2022 14:37:24 +0800
+Subject: [PATCH] Async Fluid
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 43357abcd9cbdf471bcd3410f3d788490dccdcbb..f8472548f2fe28629cf21a32819290359059559c 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -171,6 +171,11 @@ import org.bukkit.event.world.TimeSkipEvent;
+ // CraftBukkit end
+ import it.unimi.dsi.fastutil.ints.IntArrayList; // Paper
+ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet; // Paper
++// PlanetPaper start
++import java.util.concurrent.Executors;
++import top.plutomc.planetpaper.utils.OsUtil;
++import com.google.common.util.concurrent.ThreadFactoryBuilder;
++// PlanetPaper end
+ 
+ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+@@ -220,6 +225,12 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     public boolean hasPhysicsEvent = true; // Paper
+     public boolean hasEntityMoveEvent = false; // Paper
+     private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
++    // PlanetPaper start
++    private final Executor FLUID_EXECUTOR = Executors.newFixedThreadPool(OsUtil.getCpuCores(), new ThreadFactoryBuilder()
++            .setNameFormat("Fluid Ticking " + "-%d")
++            .setPriority(Thread.NORM_PRIORITY)
++            .build());
++    // PlanetPaper end
+     public static Throwable getAddToWorldStackTrace(Entity entity) {
+         return new Throwable(entity + " Added to world at " + new java.util.Date());
+     }
+@@ -1129,11 +1140,15 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     }
+ 
+     private void tickFluid(BlockPos pos, Fluid fluid) {
+-        FluidState fluid1 = this.getFluidState(pos);
++        // PlanetPaper start - async fluid.
++        FLUID_EXECUTOR.execute(() -> {
++            FluidState fluid1 = this.getFluidState(pos);
+ 
+-        if (fluid1.is(fluid)) {
+-            fluid1.tick(this, pos);
+-        }
++            if (fluid1.is(fluid)) {
++                fluid1.tick(this, pos);
++            }
++        });
++        // PlanetPaper end.
+         MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick
+ 
+     }
+diff --git a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+index ff40fe323964f173561a6838fb443e79abf9df38..9b22c93299ac218d972516104f48d8426cf743c6 100644
+--- a/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
++++ b/src/main/java/net/minecraft/world/level/material/FlowingFluid.java
+@@ -12,6 +12,7 @@ import java.util.Map;
+ import java.util.Map.Entry;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.tags.BlockTags;
+ import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.Level;
+@@ -477,29 +478,34 @@ public abstract class FlowingFluid extends Fluid {
+         if (!state.isSource()) {
+             FluidState fluid1 = this.getNewLiquid(world, pos, world.getBlockState(pos));
+             int i = this.getSpreadDelay(world, pos, state, fluid1);
+-
++            // PlanetPaper start - move fluid update to main thread.
+             if (fluid1.isEmpty()) {
+                 state = fluid1;
+                 // CraftBukkit start
+-                FluidLevelChangeEvent event = CraftEventFactory.callFluidLevelChangeEvent(world, pos, Blocks.AIR.defaultBlockState());
+-                if (event.isCancelled()) {
+-                    return;
+-                }
+-                world.setBlock(pos, ((CraftBlockData) event.getNewData()).getState(), 3);
++                MinecraftServer.getServer().execute(() -> {
++                    FluidLevelChangeEvent event = CraftEventFactory.callFluidLevelChangeEvent(world, pos, Blocks.AIR.defaultBlockState());
++                    if (event.isCancelled()) {
++                        return;
++                    }
++                    world.setBlock(pos, ((CraftBlockData) event.getNewData()).getState(), 3);
++                });
+                 // CraftBukkit end
+             } else if (!fluid1.equals(state)) {
+-                state = fluid1;
+                 BlockState iblockdata = fluid1.createLegacyBlock();
+-                // CraftBukkit start
+-                FluidLevelChangeEvent event = CraftEventFactory.callFluidLevelChangeEvent(world, pos, iblockdata);
+-                if (event.isCancelled()) {
+-                    return;
+-                }
+-                world.setBlock(pos, ((CraftBlockData) event.getNewData()).getState(), 2);
+-                // CraftBukkit end
+-                world.scheduleTick(pos, fluid1.getType(), i);
+-                world.updateNeighborsAt(pos, iblockdata.getBlock());
++                state = fluid1;
++                MinecraftServer.getServer().execute(() -> {
++                    // CraftBukkit start
++                    FluidLevelChangeEvent event = CraftEventFactory.callFluidLevelChangeEvent(world, pos, iblockdata);
++                    if (event.isCancelled()) {
++                        return;
++                    }
++                    world.setBlock(pos, ((CraftBlockData) event.getNewData()).getState(), 2);
++                    // CraftBukkit end
++                    world.scheduleTick(pos, fluid1.getType(), i);
++                    world.updateNeighborsAt(pos, iblockdata.getBlock());
++                });
+             }
++            // PlanetPaper end
+         }
+ 
+         this.spread(world, pos, state);
+diff --git a/src/main/java/top/plutomc/planetpaper/utils/OsUtil.java b/src/main/java/top/plutomc/planetpaper/utils/OsUtil.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..40386be24c303c43133567c134eb1943c7d1dfab
+--- /dev/null
++++ b/src/main/java/top/plutomc/planetpaper/utils/OsUtil.java
+@@ -0,0 +1,10 @@
++package top.plutomc.planetpaper.utils;
++
++public class OsUtil {
++    private OsUtil() {
++    }
++
++    public static int getCpuCores() {
++        return Runtime.getRuntime().availableProcessors();
++    }
++}
+\ No newline at end of file
