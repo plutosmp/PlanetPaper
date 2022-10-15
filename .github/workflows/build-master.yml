@@ -45,11 +45,6 @@ jobs:
           ./gradlew createReobfPaperclipJar --stacktrace --no-daemon
       - name: Rename Jar
         run: "mv build/libs/planetpaper-paperclip-${{ env.MC_VERSION }}-R0.1-SNAPSHOT-reobf.jar build/libs/planetpaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar"
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@main
-        with:
-          name: Artifacts
-          path: build/libs/planetpaper-${{ env.MC_VERSION }}-${{ env.ref }}-${{ env.workflow }}.jar
       - name: Release Artifacts
         uses: marvinpinto/action-automatic-releases@latest
         with:
