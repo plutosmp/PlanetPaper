@@ -80,33 +80,6 @@ index 70f1916185b79bbb9f033f4ef8119d7b17a13ef8..5e637111bc53c50add0bf687ed81e1e7
 +    // EMC stop
  
  }
-diff --git a/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java.rej b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java.rej
-new file mode 100644
-index 0000000000000000000000000000000000000000..e554694779e5130cf1a2e4de79eeebea428244f0
---- /dev/null
-+++ b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java.rej
-@@ -0,0 +1,9 @@
-+diff a/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java b/src/main/java/net/minecraft/world/entity/vehicle/MinecartHopper.java	(rejected hunks)
-+@@ -22,6 +22,7 @@ public class MinecartHopper extends AbstractMinecartContainer implements Hopper
-+     private boolean enabled = true;
-+     private int cooldownTime = -1;
-+     private final BlockPos lastPosition = BlockPos.ZERO;
-++    public int pickupImmunity = 0; // EMC
-+ 
-+     public MinecartHopper(EntityType<? extends MinecartHopper> type, Level world) {
-+         super(type, world);
-diff --git a/src/main/java/net/minecraft/world/level/block/entity/Hopper.java b/src/main/java/net/minecraft/world/level/block/entity/Hopper.java
-index 6a1405a8630e90db3b5a3c9152259ba6f5f0c784..996b10d0e7414b89cb44caa6f40afe83c764689c 100644
---- a/src/main/java/net/minecraft/world/level/block/entity/Hopper.java
-+++ b/src/main/java/net/minecraft/world/level/block/entity/Hopper.java
-@@ -15,6 +15,7 @@ public interface Hopper extends Container {
-     }
- 
-     default net.minecraft.core.BlockPos getBlockPosition() { return new net.minecraft.core.BlockPos(getLevelX(), getLevelY(), getLevelZ()); } // Paper
-+    long getAndIncrementAttemptCounter(); // EMC
- 
-     double getLevelX();
- 
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
 index ccad692aba2ed77259f6814d88f01b91ed9d229b..c9a238e3d2fa8deffd574bbb63bf8a5d7a91b350 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java

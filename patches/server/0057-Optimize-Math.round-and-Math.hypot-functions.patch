@@ -502,19 +502,3 @@ index 9bede6a26c08ede063c7a38f1149c811df14b258..d6b0c2f7e27299c211717681045bcb76
 +                + ( ( tps > 21.0 ) ? "*" : "" ) + Math.min( carpetfixes.helpers.FastMath.round( tps * 100.0 ) / 100.0, 20.0 ); // Paper - only print * at 21, we commonly peak to 20.02 as the tick sleep is not accurate enough, stop the noise // Mirai
      }
  }
-diff --git a/src/main/java/org/spigotmc/TicksPerSecondCommand.java.rej b/src/main/java/org/spigotmc/TicksPerSecondCommand.java.rej
-new file mode 100644
-index 0000000000000000000000000000000000000000..c3c446e27566099cce41abeefbfeba3103e34d35
---- /dev/null
-+++ b/src/main/java/org/spigotmc/TicksPerSecondCommand.java.rej
-@@ -0,0 +1,10 @@
-+diff a/src/main/java/org/spigotmc/TicksPerSecondCommand.java b/src/main/java/org/spigotmc/TicksPerSecondCommand.java	(rejected hunks)
-+@@ -52,7 +52,7 @@ public class TicksPerSecondCommand extends Command
-+     private static String format(double tps) // Paper - Made static
-+     {
-+         return ( ( tps > 18.0 ) ? ChatColor.GREEN : ( tps > 16.0 ) ? ChatColor.YELLOW : ChatColor.RED ).toString()
-+-                + ( ( tps > 21.0 ) ? "*" : "" ) + Math.min( Math.round( tps * 100.0 ) / 100.0, 20.0 ); // Paper - only print * at 21, we commonly peak to 20.02 as the tick sleep is not accurate enough, stop the noise
-++                + ( ( tps > 21.0 ) ? "*" : "" ) + Math.min( carpetfixes.helpers.FastMath.round( tps * 100.0 ) / 100.0, 20.0 ); // Paper - only print * at 21, we commonly peak to 20.02 as the tick sleep is not accurate enough, stop the noise // Mirai
-+     }
-+ 
-+     // Yatopia start - Last tick time API
