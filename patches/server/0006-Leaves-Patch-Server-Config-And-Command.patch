@@ -6,20 +6,6 @@ Subject: [PATCH] Leaves Patch - Server Config And Command
 Powered By Leaves. (https://github.com/LeavesMC/Leaves)
 Licensed under GPL-3.0.
 
-diff --git a/src/main/java/co/aikar/timings/TimingsExport.java b/src/main/java/co/aikar/timings/TimingsExport.java
-index 06bff37e4c1fddd3be6343049a66787c63fb420c..15ed5a9af5583e2430804662e3b9fa95862f64d0 100644
---- a/src/main/java/co/aikar/timings/TimingsExport.java
-+++ b/src/main/java/co/aikar/timings/TimingsExport.java
-@@ -241,7 +241,8 @@ public class TimingsExport extends Thread {
-         parent.put("config", createObject(
-             pair("spigot", mapAsJSON(Bukkit.spigot().getSpigotConfig(), null)),
-             pair("bukkit", mapAsJSON(Bukkit.spigot().getBukkitConfig(), null)),
--            pair("paper", mapAsJSON(Bukkit.spigot().getPaperConfig(), null))
-+            pair("paper", mapAsJSON(Bukkit.spigot().getPaperConfig(), null)), // Leaves - add config to timings report
-+			pair("leaves", mapAsJSON(Bukkit.spigot().getLeavesConfig(), null)) // Leaves - add config to timings report
-         ));
- 
-         new TimingsExport(listeners, parent, history).start();
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
 index 2ccc5c3fd4b6e25fee825d64c62c527f52303e2f..381cd02ab01dbc4d29dc3eb2488db3451ff62d94 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
@@ -33,7 +19,7 @@ index 2ccc5c3fd4b6e25fee825d64c62c527f52303e2f..381cd02ab01dbc4d29dc3eb2488db345
              org.spigotmc.WatchdogThread.hasStarted = true; // Paper
              Arrays.fill( recentTps, 20 );
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 2932d2bb797a49e904cebec4285d24d69b429cd9..18d568093aeb8be69fa76c5f2e3ac6dd61d5479b 100644
+index a5894441a6a1ccf2d4c7989028917290455d8a9f..0dd08874502b6d5078c1d7af1dbcc34dde448e74 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -226,6 +226,9 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
@@ -44,8 +30,8 @@ index 2932d2bb797a49e904cebec4285d24d69b429cd9..18d568093aeb8be69fa76c5f2e3ac6dd
 +		top.leavesmc.leaves.LeavesConfig.init((java.io.File) options.valueOf("leaves-settings")); // Leaves - Server Config
 +        top.leavesmc.leaves.LeavesConfig.registerCommands(); // Leaves - Server Command
  
-         this.setPvpAllowed(dedicatedserverproperties.pvp);
-         this.setFlightAllowed(dedicatedserverproperties.allowFlight);
+         // PlanetPaper start - Mirai Config & Command.
+         dev.etil.mirai.MiraiConfig.load(); // Mirai
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
 index d89471935b2b5888cb5d1f6829ae479003451fda..a69b428d5465b2e434bfd21cd935997c1871bbb6 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
@@ -110,7 +96,7 @@ index b3167b95be5675bf36f4697e8b7479abb1d52a87..00c80d066d8ddb1230718b6a1fd5fc9e
          @Override
          public void restart() {
 diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
-index f30621be24c6c3a4f173436fce1ad1c13507c84f..706f4235f5e2bdcd7c03f7027adeed1eb2754b9c 100644
+index 87ca73cc9a0bcd0f455d625b33151b0ba0e3467e..ca340e38b58536e6d8dc150a61b6af8ee9b14db1 100644
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
 @@ -158,6 +158,14 @@ public class Main {
