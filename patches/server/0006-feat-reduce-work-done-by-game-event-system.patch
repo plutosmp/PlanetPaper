@@ -1,10 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: GerryYuu <yuu8583@proton.me>
-Date: Tue, 4 Oct 2022 23:29:48 +0800
-Subject: [PATCH] Reduce work done by game event system
-
-Powered By Petal. (https://github.com/Bloom-host/Petal)
-Licensed under GPL-3.0
+From: peaches94 <peachescu94@gmail.com>
+Date: Sun, 10 Jul 2022 13:29:20 -0500
+Subject: [PATCH] feat: reduce work done by game event system
 
 1. going into game event dispatching can be expensive so run the checks before dispatching
 
@@ -41,15 +38,14 @@ index 22c309343299e60ed8028229b7f134109001ff35..d5947d29295ddc93ba8ac1c0fc61f7ba
          org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = blockEntity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
          blockEntity.sculkSpreader.updateCursors(world, pos, world.getRandom(), true);
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index f55584f7255012599fdce018b85e2e21e4660849..d6c3f27620ead6c1ccdbe37cd259cd8eb82db27e 100644
+index f55584f7255012599fdce018b85e2e21e4660849..3920e71713a9c61d23a2182596575b220f85e261 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -88,7 +88,19 @@ public class LevelChunk extends ChunkAccess {
+@@ -88,7 +88,18 @@ public class LevelChunk extends ChunkAccess {
      private Supplier<ChunkHolder.FullChunkStatus> fullStatus;
      @Nullable
      private LevelChunk.PostLoadProcessor postLoad;
 -    private final Int2ObjectMap<GameEventDispatcher> gameEventDispatcherSections;
-+    // private final Int2ObjectMap<GameEventDispatcher> gameEventDispatcherSections; // petal
 +    // petal start
 +    private final GameEventDispatcher[] gameEventDispatcherSections;
 +    private static final int GAME_EVENT_DISPATCHER_RADIUS = 2;
@@ -65,7 +61,7 @@ index f55584f7255012599fdce018b85e2e21e4660849..d6c3f27620ead6c1ccdbe37cd259cd8e
      private final LevelChunkTicks<Block> blockTicks;
      private final LevelChunkTicks<Fluid> fluidTicks;
  
-@@ -117,7 +129,7 @@ public class LevelChunk extends ChunkAccess {
+@@ -117,7 +128,7 @@ public class LevelChunk extends ChunkAccess {
          this.tickersInLevel = Maps.newHashMap();
          this.clientLightReady = false;
          this.level = (ServerLevel) world; // CraftBukkit - type
@@ -74,15 +70,13 @@ index f55584f7255012599fdce018b85e2e21e4660849..d6c3f27620ead6c1ccdbe37cd259cd8e
          Heightmap.Types[] aheightmap_type = Heightmap.Types.values();
          int j = aheightmap_type.length;
  
-@@ -450,9 +462,26 @@ public class LevelChunk extends ChunkAccess {
+@@ -450,9 +461,23 @@ public class LevelChunk extends ChunkAccess {
          if (world instanceof ServerLevel) {
              ServerLevel worldserver = (ServerLevel) world;
  
 -            return (GameEventDispatcher) this.gameEventDispatcherSections.computeIfAbsent(ySectionCoord, (j) -> {
-+            /*return (GameEventDispatcher) this.gameEventDispatcherSections.computeIfAbsent(ySectionCoord, (j) -> {
-                 return new EuclideanGameEventDispatcher(worldserver);
+-                return new EuclideanGameEventDispatcher(worldserver);
 -            });
-+            });*/
 +            // petal start
 +            int sectionIndex = getGameEventSectionIndex(this.getSectionIndexFromSectionY(ySectionCoord));
 +
@@ -103,18 +97,17 @@ index f55584f7255012599fdce018b85e2e21e4660849..d6c3f27620ead6c1ccdbe37cd259cd8e
          } else {
              return super.getEventDispatcher(ySectionCoord);
          }
-@@ -816,7 +845,8 @@ public class LevelChunk extends ChunkAccess {
+@@ -816,7 +841,7 @@ public class LevelChunk extends ChunkAccess {
  
                  gameeventdispatcher.unregister(gameeventlistener);
                  if (gameeventdispatcher.isEmpty()) {
 -                    this.gameEventDispatcherSections.remove(i);
-+                    // this.gameEventDispatcherSections.remove(i); // petal
 +                    this.gameEventDispatcherSections[getGameEventSectionIndex(this.getSectionIndexFromSectionY(i))] = null; // petal
                  }
              }
          }
 diff --git a/src/main/java/net/minecraft/world/level/gameevent/EuclideanGameEventDispatcher.java b/src/main/java/net/minecraft/world/level/gameevent/EuclideanGameEventDispatcher.java
-index 0dd708ebe81f73710de51215529c05ec61837dd3..aed4ae594e08116bb9450d54bfdacdad9511839f 100644
+index 0dd708ebe81f73710de51215529c05ec61837dd3..f5b402efa86f824c460db8cac20c1c2b090f82d0 100644
 --- a/src/main/java/net/minecraft/world/level/gameevent/EuclideanGameEventDispatcher.java
 +++ b/src/main/java/net/minecraft/world/level/gameevent/EuclideanGameEventDispatcher.java
 @@ -13,8 +13,8 @@ import net.minecraft.world.phys.Vec3;
@@ -123,42 +116,39 @@ index 0dd708ebe81f73710de51215529c05ec61837dd3..aed4ae594e08116bb9450d54bfdacdad
      private final List<GameEventListener> listeners = Lists.newArrayList();
 -    private final Set<GameEventListener> listenersToRemove = Sets.newHashSet();
 -    private final List<GameEventListener> listenersToAdd = Lists.newArrayList();
-+    // private final Set<GameEventListener> listenersToRemove = Sets.newHashSet(); // petal
-+    // private final List<GameEventListener> listenersToAdd = Lists.newArrayList(); // petal
++    //private final Set<GameEventListener> listenersToRemove = Sets.newHashSet(); // petal - not necessary
++    //private final List<GameEventListener> listenersToAdd = Lists.newArrayList(); // petal
      private boolean processing;
      private final ServerLevel level;
  
-@@ -30,7 +30,8 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
+@@ -30,7 +30,7 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
      @Override
      public void register(GameEventListener listener) {
          if (this.processing) {
 -            this.listenersToAdd.add(listener);
-+            // this.listenersToAdd.add(listener); // petal
 +            throw new java.util.ConcurrentModificationException(); // petal - disallow concurrent modification
          } else {
              this.listeners.add(listener);
          }
-@@ -41,7 +42,8 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
+@@ -41,7 +41,7 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
      @Override
      public void unregister(GameEventListener listener) {
          if (this.processing) {
 -            this.listenersToRemove.add(listener);
-+            // this.listenersToRemove.add(listener); // petal
 +            throw new java.util.ConcurrentModificationException(); // petal - disallow concurrent modification
          } else {
              this.listeners.remove(listener);
          }
-@@ -58,7 +60,8 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
+@@ -58,7 +58,7 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
  
              while(iterator.hasNext()) {
                  GameEventListener gameEventListener = iterator.next();
 -                if (this.listenersToRemove.remove(gameEventListener)) {
-+                // if (this.listenersToRemove.remove(gameEventListener)) { // petal
 +                if (false) { // petal - disallow concurrent modification
                      iterator.remove();
                  } else {
                      Optional<Vec3> optional = getPostableListenerPosition(this.level, pos, gameEventListener);
-@@ -72,6 +75,8 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
+@@ -72,6 +72,8 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
              this.processing = false;
          }
  
@@ -167,11 +157,11 @@ index 0dd708ebe81f73710de51215529c05ec61837dd3..aed4ae594e08116bb9450d54bfdacdad
          if (!this.listenersToAdd.isEmpty()) {
              this.listeners.addAll(this.listenersToAdd);
              this.listenersToAdd.clear();
-@@ -81,6 +86,8 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
+@@ -81,6 +83,8 @@ public class EuclideanGameEventDispatcher implements GameEventDispatcher {
              this.listeners.removeAll(this.listenersToRemove);
              this.listenersToRemove.clear();
          }
-+        */
++         */
 +        // petal end
  
          return bl;
