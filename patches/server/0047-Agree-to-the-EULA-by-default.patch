@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: nostalgic853 <yuu8583@proton.me>
+Date: Sun, 16 Oct 2022 11:55:25 +0800
+Subject: [PATCH] Agree to the EULA by default
+
+
+diff --git a/src/main/java/net/minecraft/server/Eula.java b/src/main/java/net/minecraft/server/Eula.java
+index 94f05d32304f8a8c2aa294318617851adc55988d..b9174458d309877e066513c5a2f1ea3e0cfb8cc0 100644
+--- a/src/main/java/net/minecraft/server/Eula.java
++++ b/src/main/java/net/minecraft/server/Eula.java
+@@ -41,7 +41,7 @@ public class Eula {
+             try {
+                 Properties properties = new Properties();
+                 properties.load(inputStream);
+-                var3 = Boolean.parseBoolean(properties.getProperty("eula", "false"));
++                var3 = Boolean.parseBoolean(properties.getProperty("eula", "true")); // PlanetPaper - agree to eula by default.
+             } catch (Throwable var5) {
+                 if (inputStream != null) {
+                     try {
+@@ -67,7 +67,7 @@ public class Eula {
+     }
+ 
+     public boolean hasAgreedToEULA() {
+-        return this.agreed;
++        return true; // PlanetPaper - agree to eula by default.
+     }
+ 
+     private void saveDefaults() {
+@@ -77,7 +77,7 @@ public class Eula {
+ 
+                 try {
+                     Properties properties = new Properties();
+-                    properties.setProperty("eula", "false");
++                    properties.setProperty("eula", "true"); // PlanetPaper - agree to eula by default.
+                     properties.store(outputStream, "By changing the setting below to TRUE you are indicating your agreement to our EULA (https://aka.ms/MinecraftEULA).");
+                 } catch (Throwable var5) {
+                     if (outputStream != null) {

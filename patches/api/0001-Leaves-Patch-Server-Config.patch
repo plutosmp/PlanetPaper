@@ -7,7 +7,7 @@ Powered By Leaves. (https://github.com/LeavesMC/Leaves)
 Licensed under GPL-3.0.
 
 diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
-index e43fef0152468944d8a33036344a43e95fe58476..1b311ecc6a2e4ccb7437eb74dcb7b3a881d035fd 100644
+index a7e2fab3e174fe2c1d79d904f7eaff88dd0c3c82..5b92fdf43ff7cc8ac363b4e95080c6c91a442d0f 100644
 --- a/src/main/java/org/bukkit/Server.java
 +++ b/src/main/java/org/bukkit/Server.java
 @@ -1968,6 +1968,14 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
@@ -23,5 +23,5 @@ index e43fef0152468944d8a33036344a43e95fe58476..1b311ecc6a2e4ccb7437eb74dcb7b3a8
 +        }
 +		// Leaves end - Not supported yet too
  
-         /**
-          * Sends the component to the player
+         // Purpur start
+         @NotNull

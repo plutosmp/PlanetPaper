@@ -1,0 +1,546 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Simon Gardling <titaniumtown@gmail.com>
+Date: Thu, 8 Jul 2021 17:03:31 -0400
+Subject: [PATCH] Use MCUtil.asyncExecutor for MAIN_WORKER_EXECUTOR in
+ SystemUtils
+
+Original code by Titaniumtown, licensed under GNU General Public License v3.0
+You can find the original code on https://gitlab.com/Titaniumtown/JettPack
+
+diff --git a/src/main/java/me/titaniumtown/ServerWorkerWrapper.java b/src/main/java/me/titaniumtown/ServerWorkerWrapper.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..7bd88761137b2a68c04fbaa920a9ea9ce1f9e873
+--- /dev/null
++++ b/src/main/java/me/titaniumtown/ServerWorkerWrapper.java
+@@ -0,0 +1,24 @@
++package me.titaniumtown;
++
++import com.google.common.base.Preconditions;
++import net.minecraft.Util;
++
++public final class ServerWorkerWrapper implements Runnable {
++    private final Runnable internalRunnable;
++
++    public ServerWorkerWrapper(Runnable runnable) {
++        this.internalRunnable = Preconditions.checkNotNull(runnable, "internalRunnable");
++    }
++
++    @Override
++    public final void run() {
++        try {
++            this.internalRunnable.run();
++            return;
++        }
++        catch (Throwable throwable) {
++            Util.onThreadException(Thread.currentThread(), throwable);
++            return;
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/net/minecraft/Util.java b/src/main/java/net/minecraft/Util.java
+index ba1a03d050200a46b3bfb487a9014d9041cb15f8..f2e81db9b666e44aff8f1dcb8fcf600551e9efc0 100644
+--- a/src/main/java/net/minecraft/Util.java
++++ b/src/main/java/net/minecraft/Util.java
+@@ -11,11 +11,22 @@ import com.mojang.datafixers.types.Type;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.DataResult;
++import io.papermc.paper.util.MCUtil;
+ import it.unimi.dsi.fastutil.Hash;
+ import it.unimi.dsi.fastutil.ints.IntArrayList;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++import me.titaniumtown.ServerWorkerWrapper;
++import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.Bootstrap;
++import net.minecraft.util.RandomSource;
++import net.minecraft.util.TimeSource;
++import net.minecraft.util.datafix.DataFixers;
++import net.minecraft.world.level.block.state.properties.Property;
++import org.slf4j.Logger;
++
++import javax.annotation.Nullable;
+ import java.io.File;
+ import java.io.IOException;
+ import java.lang.management.ManagementFactory;
+@@ -27,52 +38,19 @@ import java.net.URL;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.nio.file.spi.FileSystemProvider;
+-import java.security.AccessController;
+-import java.security.PrivilegedActionException;
+-import java.security.PrivilegedExceptionAction;
+ import java.time.Duration;
+ import java.time.Instant;
+ import java.time.ZonedDateTime;
+ import java.time.format.DateTimeFormatter;
+-import java.util.Arrays;
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.Locale;
+-import java.util.Map;
+-import java.util.Optional;
+-import java.util.UUID;
+-import java.util.concurrent.BlockingQueue;
+-import java.util.concurrent.CompletableFuture;
+-import java.util.concurrent.CompletionException;
+-import java.util.concurrent.Executor;
+-import java.util.concurrent.ExecutorService;
+-import java.util.concurrent.Executors;
+-import java.util.concurrent.ForkJoinPool;
+-import java.util.concurrent.ForkJoinWorkerThread;
+-import java.util.concurrent.LinkedBlockingQueue;
+-import java.util.concurrent.TimeUnit;
++import java.util.*;
++import java.util.concurrent.*;
+ import java.util.concurrent.atomic.AtomicInteger;
+-import java.util.function.BiFunction;
+-import java.util.function.BooleanSupplier;
+-import java.util.function.Consumer;
+-import java.util.function.Function;
+-import java.util.function.IntFunction;
+-import java.util.function.Predicate;
+-import java.util.function.Supplier;
+-import java.util.function.ToIntFunction;
++import java.util.function.*;
+ import java.util.stream.Collector;
+ import java.util.stream.Collectors;
+ import java.util.stream.IntStream;
+ import java.util.stream.Stream;
+-import javax.annotation.Nullable;
+-import net.minecraft.resources.ResourceLocation;
+-import net.minecraft.server.Bootstrap;
+-import net.minecraft.util.Mth;
+-import net.minecraft.util.RandomSource;
+-import net.minecraft.util.TimeSource;
+-import net.minecraft.util.datafix.DataFixers;
+-import net.minecraft.world.level.block.state.properties.Property;
+-import org.slf4j.Logger;
++// JettPack end
+ 
+ public class Util {
+     static final Logger LOGGER = LogUtils.getLogger();
+@@ -121,7 +99,7 @@ public class Util {
+     }
+ 
+     public static <T extends Comparable<T>> String getPropertyName(Property<T> property, Object value) {
+-        return property.getName((T)(value));
++        return property.getName((T) (value));
+     }
+ 
+     public static String makeDescriptionId(String type, @Nullable ResourceLocation id) {
+@@ -165,7 +143,46 @@ public class Util {
+         if (i <= 0) {
+             executorService = MoreExecutors.newDirectExecutorService();
+         } else {
+-            executorService = new java.util.concurrent.ThreadPoolExecutor(i, i,0L, TimeUnit.MILLISECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>(), target -> new io.papermc.paper.util.ServerWorkerThread(target, s, priorityModifier));
++            //executorService = new java.util.concurrent.ThreadPoolExecutor(i, i,0L, TimeUnit.MILLISECONDS, new java.util.concurrent.LinkedBlockingQueue<Runnable>(), target -> new net.minecraft.server.ServerWorkerThread(target, s, priorityModifier)); // JettPack
++            // JettPack start
++            executorService = Integer.getInteger("Paper.WorkerThreadCount", i) <= 0 ? MoreExecutors.newDirectExecutorService() : new AbstractExecutorService() {
++                private volatile boolean shutdown = false;
++
++                @Override
++                public final List<Runnable> shutdownNow() {
++                    this.shutdown = true;
++                    return Collections.emptyList();
++                }
++
++                @Override
++                public final void shutdown() {
++                    this.shutdown = true;
++                }
++
++                @Override
++                public final boolean isShutdown() {
++                    return this.shutdown;
++                }
++
++                @Override
++                public final boolean isTerminated() {
++                    return this.shutdown;
++                }
++
++                @Override
++                public final boolean awaitTermination(long l2, TimeUnit timeUnit) throws InterruptedException {
++                    if (!this.shutdown) {
++                        throw new UnsupportedOperationException();
++                    }
++                    return true;
++                }
++
++                @Override
++                public final void execute(Runnable runnable) {
++                    MCUtil.asyncExecutor.execute(new ServerWorkerWrapper(runnable));
++                }
++            };
++            // JettPack end
+         }
+         /*
+                     @Override
+@@ -257,7 +274,7 @@ public class Util {
+     }
+ 
+     public static void throwAsRuntime(Throwable t) {
+-        throw t instanceof RuntimeException ? (RuntimeException)t : new RuntimeException(t);
++        throw t instanceof RuntimeException ? (RuntimeException) t : new RuntimeException(t);
+     }
+ 
+     public static void onThreadException(Thread thread, Throwable t) {
+@@ -267,7 +284,7 @@ public class Util {
+         }
+ 
+         if (t instanceof ReportedException) {
+-            Bootstrap.realStdoutPrintln(((ReportedException)t).getReport().getFriendlyReport());
++            Bootstrap.realStdoutPrintln(((ReportedException) t).getReport().getFriendlyReport());
+             System.exit(-1);
+         }
+ 
+@@ -286,7 +303,7 @@ public class Util {
+         try {
+             type = DataFixers.getDataFixer().getSchema(DataFixUtils.makeKey(SharedConstants.getCurrentVersion().getWorldVersion())).getChoiceType(typeReference, id);
+         } catch (IllegalArgumentException var4) {
+-            LOGGER.error("No data fixer registered for {}", (Object)id);
++            LOGGER.error("No data fixer registered for {}", (Object) id);
+             if (SharedConstants.IS_RUNNING_IN_IDE) {
+                 throw var4;
+             }
+@@ -323,7 +340,7 @@ public class Util {
+                 thread.setName(string2);
+             }
+ 
+-            return (V)var4;
++            return (V) var4;
+         } : supplier;
+     }
+ 
+@@ -361,7 +378,7 @@ public class Util {
+         if (object != null) {
+             T object3 = object2;
+ 
+-            while(object3 != object) {
++            while (object3 != object) {
+                 if (iterator.hasNext()) {
+                     object3 = iterator.next();
+                 }
+@@ -380,11 +397,11 @@ public class Util {
+ 
+         T object2;
+         T object3;
+-        for(object2 = null; iterator.hasNext(); object2 = object3) {
++        for (object2 = null; iterator.hasNext(); object2 = object3) {
+             object3 = iterator.next();
+             if (object3 == object) {
+                 if (object2 == null) {
+-                    object2 = (T)(iterator.hasNext() ? Iterators.getLast(iterator) : object);
++                    object2 = (T) (iterator.hasNext() ? Iterators.getLast(iterator) : object);
+                 }
+                 break;
+             }
+@@ -404,11 +421,11 @@ public class Util {
+ 
+     @Nullable
+     public static <T, R> R mapNullable(@Nullable T value, Function<T, R> mapper) {
+-        return (R)(value == null ? null : mapper.apply(value));
++        return (R) (value == null ? null : mapper.apply(value));
+     }
+ 
+     public static <T, R> R mapNullable(@Nullable T value, Function<T, R> mapper, R other) {
+-        return (R)(value == null ? other : mapper.apply(value));
++        return (R) (value == null ? other : mapper.apply(value));
+     }
+ 
+     public static <K> Hash.Strategy<K> identityStrategy() {
+@@ -436,7 +453,7 @@ public class Util {
+     public static <V> CompletableFuture<List<V>> sequenceFailFastAndCancel(List<? extends CompletableFuture<? extends V>> futures) {
+         CompletableFuture<List<V>> completableFuture = new CompletableFuture<>();
+         return fallibleSequence(futures, (throwable) -> {
+-            for(CompletableFuture<? extends V> completableFuture2 : futures) {
++            for (CompletableFuture<? extends V> completableFuture2 : futures) {
+                 completableFuture2.cancel(true);
+             }
+ 
+@@ -449,7 +466,7 @@ public class Util {
+         CompletableFuture<?>[] completableFutures = new CompletableFuture[futures.size()];
+         futures.forEach((future) -> {
+             int i = list.size();
+-            list.add((V)null);
++            list.add((V) null);
+             completableFutures[i] = future.whenComplete((value, throwable) -> {
+                 if (throwable != null) {
+                     exceptionHandler.accept(throwable);
+@@ -553,7 +570,7 @@ public class Util {
+                     Files.move(src, dest);
+                     return true;
+                 } catch (IOException var2) {
+-                    Util.LOGGER.error("Failed to rename", (Throwable)var2);
++                    Util.LOGGER.error("Failed to rename", (Throwable) var2);
+                     return false;
+                 }
+             }
+@@ -573,7 +590,7 @@ public class Util {
+                     Files.deleteIfExists(path);
+                     return true;
+                 } catch (IOException var2) {
+-                    Util.LOGGER.warn("Failed to delete", (Throwable)var2);
++                    Util.LOGGER.warn("Failed to delete", (Throwable) var2);
+                     return false;
+                 }
+             }
+@@ -614,9 +631,9 @@ public class Util {
+     }
+ 
+     private static boolean executeInSequence(BooleanSupplier... tasks) {
+-        for(BooleanSupplier booleanSupplier : tasks) {
++        for (BooleanSupplier booleanSupplier : tasks) {
+             if (!booleanSupplier.getAsBoolean()) {
+-                LOGGER.warn("Failed to execute {}", (Object)booleanSupplier);
++                LOGGER.warn("Failed to execute {}", (Object) booleanSupplier);
+                 return false;
+             }
+         }
+@@ -625,7 +642,7 @@ public class Util {
+     }
+ 
+     private static boolean runWithRetries(int retries, String taskName, BooleanSupplier... tasks) {
+-        for(int i = 0; i < retries; ++i) {
++        for (int i = 0; i < retries; ++i) {
+             if (executeInSequence(tasks)) {
+                 return true;
+             }
+@@ -633,7 +650,7 @@ public class Util {
+             LOGGER.error("Failed to {}, retrying {}/{}", taskName, i, retries);
+         }
+ 
+-        LOGGER.error("Failed to {}, aborting, progress might be lost", (Object)taskName);
++        LOGGER.error("Failed to {}, aborting, progress might be lost", (Object) taskName);
+         return false;
+     }
+ 
+@@ -664,13 +681,13 @@ public class Util {
+     public static int offsetByCodepoints(String string, int cursor, int delta) {
+         int i = string.length();
+         if (delta >= 0) {
+-            for(int j = 0; cursor < i && j < delta; ++j) {
++            for (int j = 0; cursor < i && j < delta; ++j) {
+                 if (Character.isHighSurrogate(string.charAt(cursor++)) && cursor < i && Character.isLowSurrogate(string.charAt(cursor))) {
+                     ++cursor;
+                 }
+             }
+         } else {
+-            for(int k = delta; cursor > 0 && k < 0; ++k) {
++            for (int k = delta; cursor > 0 && k < 0; ++k) {
+                 --cursor;
+                 if (Character.isLowSurrogate(string.charAt(cursor)) && cursor > 0 && Character.isHighSurrogate(string.charAt(cursor - 1))) {
+                     --cursor;
+@@ -688,7 +705,7 @@ public class Util {
+     }
+ 
+     public static DataResult<int[]> fixedSize(IntStream stream, int length) {
+-        int[] is = stream.limit((long)(length + 1)).toArray();
++        int[] is = stream.limit((long) (length + 1)).toArray();
+         if (is.length != length) {
+             String string = "Input is not a list of " + length + " ints";
+             return is.length >= length ? DataResult.error(string, Arrays.copyOf(is, length)) : DataResult.error(string);
+@@ -710,7 +727,7 @@ public class Util {
+         Thread thread = new Thread("Timer hack thread") {
+             @Override
+             public void run() {
+-                while(true) {
++                while (true) {
+                     try {
+                         Thread.sleep(2147483647L);
+                     } catch (InterruptedException var2) {
+@@ -733,7 +750,7 @@ public class Util {
+ 
+     public static String sanitizeName(String string, CharPredicate predicate) {
+         return string.toLowerCase(Locale.ROOT).chars().mapToObj((charCode) -> {
+-            return predicate.test((char)charCode) ? Character.toString((char)charCode) : "_";
++            return predicate.test((char) charCode) ? Character.toString((char) charCode) : "_";
+         }).collect(Collectors.joining());
+     }
+ 
+@@ -781,7 +798,7 @@ public class Util {
+         IntArrayList intArrayList = IntArrayList.wrap(stream.toArray());
+         int i = intArrayList.size();
+ 
+-        for(int j = i; j > 1; --j) {
++        for (int j = i; j > 1; --j) {
+             int k = random.nextInt(j);
+             intArrayList.set(j - 1, intArrayList.set(k, intArrayList.getInt(j - 1)));
+         }
+@@ -804,7 +821,7 @@ public class Util {
+     public static <T> void shuffle(ObjectArrayList<T> list, RandomSource random) {
+         int i = list.size();
+ 
+-        for(int j = i; j > 1; --j) {
++        for (int j = i; j > 1; --j) {
+             int k = random.nextInt(j);
+             list.set(j - 1, list.set(k, list.get(j - 1)));
+         }
+@@ -819,7 +836,7 @@ public class Util {
+         BlockingQueue<Runnable> blockingQueue = new LinkedBlockingQueue<>();
+         T object = resultFactory.apply(blockingQueue::add);
+ 
+-        while(!donePredicate.test(object)) {
++        while (!donePredicate.test(object)) {
+             try {
+                 Runnable runnable = blockingQueue.poll(100L, TimeUnit.MILLISECONDS);
+                 if (runnable != null) {
+@@ -833,7 +850,7 @@ public class Util {
+ 
+         int i = blockingQueue.size();
+         if (i > 0) {
+-            LOGGER.warn("Tasks left in queue: {}", (int)i);
++            LOGGER.warn("Tasks left in queue: {}", (int) i);
+         }
+ 
+         return object;
+@@ -846,7 +863,7 @@ public class Util {
+     public static <T> ToIntFunction<T> createIndexLookup(List<T> values, IntFunction<Object2IntMap<T>> mapCreator) {
+         Object2IntMap<T> object2IntMap = mapCreator.apply(values.size());
+ 
+-        for(int i = 0; i < values.size(); ++i) {
++        for (int i = 0; i < values.size(); ++i) {
+             object2IntMap.put(values.get(i), i);
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index 119e26e32654c834ff1158836ce56ba8985c09e8..a1cd2f9d92a8f14ced8365b77d01fc404b167d8d 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -1343,7 +1343,7 @@ public abstract class Player extends LivingEntity {
+                     boolean flag3 = false;
+                     double d0 = (double) (this.walkDist - this.walkDistO);
+ 
+-                    if (flag && !flag2 && !flag1 && this.onGround && d0 < (double) this.getSpeed()) {
++                    if (flag && !flag2 && !flag1 && this.isOnGround() && d0 < (double) this.getSpeed()) { // Leaves - use isOnGround method
+                         ItemStack itemstack = this.getItemInHand(InteractionHand.MAIN_HAND);
+ 
+                         if (itemstack.getItem() instanceof SwordItem) {
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 08bce209a270b771f47c2fd0db13e8d6d53208f7..a2fccd3a0e5fb0b8850068c4e5360307c8607aa2 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -174,6 +174,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     // Paper end
+ 
+     public final com.destroystokyo.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
++    public final top.leavesmc.leaves.LeavesConfig.WorldConfig leavesConfig; // Leaves - World Config
+     public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur
+ 
+     public final co.aikar.timings.WorldTimingsHandler timings; // Paper
+@@ -330,6 +331,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     protected Level(WritableLevelData worlddatamutable, ResourceKey<Level> resourcekey, Holder<DimensionType> holder, Supplier<ProfilerFiller> supplier, boolean flag, boolean flag1, long i, int j, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider, org.bukkit.World.Environment env, java.util.function.Function<org.spigotmc.SpigotWorldConfig, io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, java.util.concurrent.Executor executor) { // Paper - Async-Anti-Xray - Pass executor
+         this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName()); // Spigot
+         this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper
++        this.leavesConfig = new top.leavesmc.leaves.LeavesConfig.WorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData)worlddatamutable).getLevelName()); // Leaves - World Config
+         this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) worlddatamutable).getLevelName(), env); // Purpur
+         this.playerBreedingCooldowns = this.getNewBreedingCooldownCache(); // Purpur
+         this.generator = gen;
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index 10208b3be330e8a02a4b248a3861ba978e64aab4..3deef899ab893042b971888689f300eb51ad88c1 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -189,6 +189,8 @@ import org.bukkit.plugin.Plugin;
+ import org.bukkit.util.BoundingBox;
+ import org.bukkit.util.NumberConversions;
+ import org.bukkit.util.Vector;
++import top.leavesmc.leaves.bot.ServerBot;
++import top.leavesmc.leaves.entity.CraftBot;
+ 
+ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+     private static PermissibleBase perm;
+@@ -218,7 +220,12 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         if (entity instanceof LivingEntity) {
+             // Players
+             if (entity instanceof Player) {
+-                if (entity instanceof ServerPlayer) { return new CraftPlayer(server, (ServerPlayer) entity); }
++                // Leaves start - add CraftBot
++                if (entity instanceof ServerPlayer) {
++                    if (entity instanceof ServerBot) { return new CraftBot(server, (ServerBot) entity); }
++                    else { return new CraftPlayer(server, (ServerPlayer) entity); }
++                }
++                // Leaves end - add CraftBot
+                 else { return new CraftHumanEntity(server, (Player) entity); }
+             }
+             // Water Animals
+diff --git a/src/main/java/top/leavesmc/leaves/LeavesConfig.java b/src/main/java/top/leavesmc/leaves/LeavesConfig.java
+index 1fb25e8a21b568864974cc81b452ba062890d593..c32825a237a539035828a9c85673ea0e4347b259 100644
+--- a/src/main/java/top/leavesmc/leaves/LeavesConfig.java
++++ b/src/main/java/top/leavesmc/leaves/LeavesConfig.java
+@@ -7,11 +7,13 @@ import org.bukkit.Bukkit;
+ import org.bukkit.command.Command;
+ import org.bukkit.configuration.ConfigurationSection;
+ import org.bukkit.configuration.file.YamlConfiguration;
++import top.leavesmc.leaves.bot.BotCommand;
+ 
+ import java.io.File;
+ import java.lang.reflect.InvocationTargetException;
+ import java.lang.reflect.Method;
+ import java.lang.reflect.Modifier;
++import java.util.Arrays;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -65,6 +67,11 @@ public final class LeavesConfig {
+         LeavesConfig.load(config);
+ 
+ 	    commands = new HashMap<>();
++
++        if (top.leavesmc.leaves.LeavesConfig.fakeplayerSupport) {
++            commands.put("bot", new BotCommand("bot"));
++            top.leavesmc.leaves.bot.agent.Actions.registerAll();
++        }
+     }
+ 
+     public static void load(final YamlConfiguration config) {
+@@ -95,9 +102,12 @@ public final class LeavesConfig {
+         if (configVersion < CURRENT_CONFIG_VERSION) {
+             playerCanEditSign = config.getBoolean("settings.player-can-edit-sign", playerCanEditSign);
+             snowballAndEggCanKnockback = config.getBoolean("settings.snowball-and-egg-can-knockback-player", snowballAndEggCanKnockback);
++            fakeplayerSupport = config.getBoolean("settings.fakeplayer.enable", fakeplayerSupport);
++            unableFakeplayerNames = (List<String>) config.getList("settings.fakeplayer.unable-fakeplayer-names", unableFakeplayerNames);
+ 
+             config.set("settings.snowball-and-egg-can-knockback-player", null);
+             config.set("settings.player-can-edit-sign", null);
++            config.set("settings.fakeplayer", null);
+         }
+     }
+ 
+@@ -136,6 +146,12 @@ public final class LeavesConfig {
+         return LeavesConfig.config.getString(path, dfl);
+     }
+ 
++
++    static <T> List<T> getList(final String path, final List<T> def) {
++        LeavesConfig.config.addDefault(path, def);
++        return (List<T>) LeavesConfig.config.getList(path, config.getList(path));
++    }
++
+     public static boolean playerCanEditSign = true;
+     private static void playerCanEditSign() {
+         playerCanEditSign = getBoolean("settings.modify.player-can-edit-sign", playerCanEditSign);
+@@ -146,6 +162,21 @@ public final class LeavesConfig {
+         snowballAndEggCanKnockback = getBoolean("settings.modify.snowball-and-egg-can-knockback-player", snowballAndEggCanKnockback);
+     }
+ 
++    public static boolean fakeplayerSupport = true;
++    private static void fakeplayerSupport() {
++        fakeplayerSupport = getBoolean("settings.modify.fakeplayer.enable", fakeplayerSupport);
++    }
++
++    public static List<String> unableFakeplayerNames = List.of("player-name");
++    private static void unableFakeplayerNames() {
++        unableFakeplayerNames = getList("settings.modify.fakeplayer.unable-fakeplayer-names", unableFakeplayerNames);
++    }
++
++    public static int fakeplayerLimit = 10;
++    private static void fakeplayerLimit() {
++        fakeplayerLimit = getInt("settings.modify.fakeplayer.limit", fakeplayerLimit);
++    }
++
+     public static final class WorldConfig {
+ 
+         public final String worldName;

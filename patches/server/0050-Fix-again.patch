@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: nostalgic853 <yuu8583@proton.me>
+Date: Sun, 20 Nov 2022 14:18:12 +0800
+Subject: [PATCH] Fix again
+
+
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 6a36c3de85ced6e4cc1a22cca94e968de204a6bc..787d0fe995f9ff5ccb498ef1d8afcdb646e00ca4 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -300,30 +300,6 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+             DedicatedServer.LOGGER.warn("Perhaps a server is already running on that port?");
+             return false;
+         }
+-        // Purpur start
+-        if (org.purpurmc.purpur.PurpurConfig.useUPnP) {
+-            LOGGER.info("[UPnP] Attempting to start UPnP port forwarding service...");
+-            if (dev.omega24.upnp4j.UPnP4J.isUPnPAvailable()) {
+-                if (dev.omega24.upnp4j.UPnP4J.isOpen(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
+-                    this.upnp = false;
+-                    LOGGER.info("[UPnP] Port {} is already open", this.getPort());
+-                } else if (dev.omega24.upnp4j.UPnP4J.open(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
+-                    this.upnp = true;
+-                    LOGGER.info("[UPnP] Successfully opened port {}", this.getPort());
+-                } else {
+-                    this.upnp = false;
+-                    LOGGER.info("[UPnP] Failed to open port {}", this.getPort());
+-                }
+-
+-                if (upnp) {
+-                    LOGGER.info("[UPnP] {}:{}", dev.omega24.upnp4j.UPnP4J.getExternalIP(), this.getPort());
+-                }
+-            } else {
+-                this.upnp = false;
+-                LOGGER.error("[UPnP] Service is unavailable");
+-            }
+-        }
+-        // Purpur end
+ 
+         // CraftBukkit start
+         // this.setPlayerList(new DedicatedPlayerList(this, this.registryHolder, this.playerDataStorage)); // Spigot - moved up

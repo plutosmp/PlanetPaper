@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: nostalgic853 <yuu8583@proton.me>
+Date: Sun, 20 Nov 2022 14:17:02 +0800
+Subject: [PATCH] A simple fix
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 5d074616379d23cf827fc49e3c54c129ca2f5516..4e8e6bdf40e9f168f227f32422705ee8752d851d 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -948,13 +948,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         MinecraftTimings.stopServer(); // Paper
+         ServerBot.removeAllBot(); // Leaves - remove all bot
+         // Purpur start
+-        if (upnp) {
+-            if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
+-                LOGGER.info("[UPnP] Port {} closed", this.getPort());
+-            } else {
+-                LOGGER.error("[UPnP] Failed to close port {}", this.getPort());
+-            }
+-        }
+         // CraftBukkit start
+         if (this.server != null) {
+             this.server.disablePlugins();

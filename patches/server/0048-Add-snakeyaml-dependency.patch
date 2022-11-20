@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: nostalgic853 <yuu8583@proton.me>
+Date: Sun, 16 Oct 2022 14:41:19 +0800
+Subject: [PATCH] Add snakeyaml dependency
+
+
+diff --git a/build.gradle.kts b/build.gradle.kts
+index fc97fd75326e8a0e9fef6181efc898dac1e23350..41709b0c7771941ed683eb635e8f0a1dabd76346 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -63,6 +63,13 @@ dependencies {
+ 
+     implementation("io.netty:netty-all:4.1.77.Final"); // Paper - Bump netty
+     implementation(kotlin("stdlib")) // PlanetPaper
++
++    // PlanetPaper start - snakeyaml.
++    implementation("org.yaml:snakeyaml:1.32")
++    implementation ("me.carleslc.Simple-YAML:Simple-Yaml:1.8.2") {
++        exclude(group="org.yaml", module="snakeyaml")
++    }
++    // PlanetPaper end
+ }
+ 
+ val craftbukkitPackageVersion = "1_19_R1" // Paper

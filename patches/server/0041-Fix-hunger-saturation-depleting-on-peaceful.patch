@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: etil2jz <81570777+etil2jz@users.noreply.github.com>
+Date: Fri, 22 Apr 2022 18:50:49 +0200
+Subject: [PATCH] Fix hunger saturation depleting on peaceful
+
+Powered By Mirai. (https://github.com/etil2jz/Mirai)
+Licensed under GPL-3.0.
+
+The food saturation value is depleted on peaceful, even though
+the displayed hunger bar never goes down. Hunger (or any related value, including saturation)
+should not go down on peaceful. See https://bugs.mojang.com/browse/MC-31819.
+
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index a1cd2f9d92a8f14ced8365b77d01fc404b167d8d..be72bab7f4d08419f4b69ed608f121c85304aad2 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -1971,6 +1971,7 @@ public abstract class Player extends LivingEntity {
+     }
+ 
+     public void causeFoodExhaustion(float f, EntityExhaustionEvent.ExhaustionReason reason) {
++        if (this.level.getDifficulty() == Difficulty.PEACEFUL) return; // Mirai - fix hunger saturation depleting on peaceful
+         // CraftBukkit end
+         if (!this.abilities.invulnerable) {
+             if (!this.level.isClientSide) {

@@ -1,0 +1,382 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: violetc <58360096+s-yh-china@users.noreply.github.com>
+Date: Fri, 29 Oct 2021 16:52:57 +0800
+Subject: [PATCH] Leaves Patch - Server Config And Command
+
+Powered By Leaves. (https://github.com/LeavesMC/Leaves)
+Licensed under GPL-3.0.
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index ae95e3af64811f6f149a01b9715d8fdd2c2583fa..27490e2bed5a65f5e0e64df15b7d34e999628693 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1137,6 +1137,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             LOGGER.info("Done ({})! For help, type \"help\"", doneTime);
+             // Paper end
+ 
++			top.leavesmc.leaves.LeavesConfig.createWorldSections = false; // Leaves - dont let plugin create worlds fill our config
+             org.spigotmc.WatchdogThread.tick(); // Paper
+             org.spigotmc.WatchdogThread.hasStarted = true; // Paper
+             Arrays.fill( recentTps, 20 );
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 642c56b17d98b5f527dfa271ee45c5e831c13bf6..6a36c3de85ced6e4cc1a22cca94e968de204a6bc 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -236,6 +236,10 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         // Purpur end
+         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // load version history now
+         io.papermc.paper.brigadier.PaperBrigadierProviderImpl.INSTANCE.getClass(); // init PaperBrigadierProvider
++
++        top.leavesmc.leaves.LeavesConfig.init((java.io.File) options.valueOf("leaves-settings")); // Leaves - Server Config
++        top.leavesmc.leaves.LeavesConfig.registerCommands(); // Leaves - Server Command
++
+         // Paper end
+         gg.pufferfish.pufferfish.PufferfishConfig.pufferfishFile = (java.io.File) options.valueOf("pufferfish-settings"); // Purpur
+         gg.pufferfish.pufferfish.PufferfishConfig.load(); // Pufferfish
+diff --git a/src/main/java/org/bukkit/craftbukkit/Main.java b/src/main/java/org/bukkit/craftbukkit/Main.java
+index ebf774da1f2614c0ecb00cf9260ba5a5ca676cb2..fe94d4ee80e05322473b6659ea6062c399596d27 100644
+--- a/src/main/java/org/bukkit/craftbukkit/Main.java
++++ b/src/main/java/org/bukkit/craftbukkit/Main.java
+@@ -158,6 +158,14 @@ public class Main {
+                         .ofType(File.class)
+                         .defaultsTo(new File("paper.yml"))
+                         .describedAs("Yml file");
++						
++				// Leaves start - Server Config
++				acceptsAll(asList("leaves", "leaves-settings"), "File for leaves settings")
++                        .withRequiredArg()
++                        .ofType(File.class)
++                        .defaultsTo(new File("leaves.yml"))
++                        .describedAs("Yml file");
++				// Leaves end - Server Config
+ 
+                 acceptsAll(asList("add-plugin", "add-extra-plugin-jar"), "Specify paths to extra plugin jars to be loaded in addition to those in the plugins folder. This argument can be specified multiple times, once for each extra plugin jar path.")
+                         .withRequiredArg()
+diff --git a/src/main/java/org/purpurmc/purpur/PurpurConfig.java b/src/main/java/org/purpurmc/purpur/PurpurConfig.java
+index f02a183fa2fd359456063b55c6c087e802c54f7b..5a4e6ff45b0a5d43f69fa919f33fa186792fcbc3 100644
+--- a/src/main/java/org/purpurmc/purpur/PurpurConfig.java
++++ b/src/main/java/org/purpurmc/purpur/PurpurConfig.java
+@@ -244,7 +244,7 @@ public class PurpurConfig {
+         if (!TimingsManager.hiddenConfigs.contains("settings.seed")) TimingsManager.hiddenConfigs.add("settings.seed");
+     }
+ 
+-    public static String serverModName = "KeYi"; // KeYi
++    public static String serverModName = "PlanetPaper"; // KeYi // PlanetPaper
+     private static void serverModName() {
+         serverModName = getString("settings.server-mod-name", serverModName);
+     }
+diff --git a/src/main/java/top/leavesmc/leaves/LeavesConfig.java b/src/main/java/top/leavesmc/leaves/LeavesConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c290eb2d4abf9e9b923b8d0878f319328b7cf8c
+--- /dev/null
++++ b/src/main/java/top/leavesmc/leaves/LeavesConfig.java
+@@ -0,0 +1,309 @@
++package top.leavesmc.leaves;
++
++import com.destroystokyo.paper.util.SneakyThrow;
++import com.google.common.base.Throwables;
++import net.minecraft.server.MinecraftServer;
++import org.bukkit.Bukkit;
++import org.bukkit.command.Command;
++import org.bukkit.configuration.ConfigurationSection;
++import org.bukkit.configuration.file.YamlConfiguration;
++
++import java.io.File;
++import java.lang.reflect.InvocationTargetException;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.logging.Level;
++
++// Powered by Tuinity(https://github.com/Tuinity/Tuinity)
++
++public final class LeavesConfig {
++
++    public static final String CONFIG_HEADER = "Configuration file for Leaves.";
++    public static final int CURRENT_CONFIG_VERSION = 2;
++
++    private static final Object[] EMPTY = new Object[0];
++
++    private static File configFile;
++    public static YamlConfiguration config;
++    private static int configVersion;
++    public static boolean createWorldSections = true;
++    static Map<String, Command> commands;
++
++    public static void init(final File file) {
++        LeavesConfig.configFile = file;
++        config = new YamlConfiguration();
++        config.options().header(CONFIG_HEADER);
++        config.options().copyDefaults(true);
++
++        if (!file.exists()) {
++            try {
++                file.createNewFile();
++            } catch (final Exception ex) {
++                Bukkit.getLogger().log(Level.SEVERE, "Failure to create leaves config", ex);
++            }
++        } else {
++            try {
++                config.load(file);
++            } catch (final Exception ex) {
++                Bukkit.getLogger().log(Level.SEVERE, "Failure to load leaves config", ex);
++                SneakyThrow.sneaky(ex); /* Rethrow, this is critical */
++                throw new RuntimeException(ex); // unreachable
++            }
++        }
++
++        if (config.contains("config-version-please-do-not-modify-me")) {
++            LeavesConfig.set("config-version-please-do-not-modify-me", null);
++        }
++        LeavesConfig.configVersion = LeavesConfig.getInt("config-version", CURRENT_CONFIG_VERSION);
++        LeavesConfig.set("config-version", CURRENT_CONFIG_VERSION);
++
++        updateConfigVersion(config);
++
++        LeavesConfig.load(config);
++
++	    commands = new HashMap<>();
++    }
++
++    public static void load(final YamlConfiguration config) {
++        for (Method method : LeavesConfig.class.getDeclaredMethods()) {
++            if (Modifier.isPrivate(method.getModifiers())) {
++                if (method.getParameterTypes().length == 0 && method.getReturnType() == Void.TYPE) {
++                    try {
++                        method.setAccessible(true);
++                        method.invoke(null);
++                    } catch (InvocationTargetException ex) {
++                        throw Throwables.propagate(ex.getCause());
++                    } catch (Exception ex) {
++                        Bukkit.getLogger().log(Level.SEVERE, "Error invoking " + method, ex);
++                    }
++                }
++            }
++        }
++
++        /* We re-save to add new options */
++        try {
++            config.save(LeavesConfig.configFile);
++        } catch (final Exception ex) {
++            Bukkit.getLogger().log(Level.SEVERE, "Unable to save leaves config", ex);
++        }
++    }
++
++    private static void updateConfigVersion(final YamlConfiguration config) {
++        if (configVersion < CURRENT_CONFIG_VERSION) {
++
++        }
++    }
++
++    static void set(final String path, final Object value) {
++        LeavesConfig.config.set(path, value);
++    }
++
++    public static void registerCommands() {
++        for (Map.Entry<String, Command> entry : commands.entrySet()) {
++            MinecraftServer.getServer().server.getCommandMap().register(entry.getKey(), "Leaves", entry.getValue());
++        }
++    }
++
++    static boolean getBoolean(final String path, final boolean dfl) {
++        LeavesConfig.config.addDefault(path, Boolean.valueOf(dfl));
++        return LeavesConfig.config.getBoolean(path, dfl);
++    }
++
++    static int getInt(final String path, final int dfl) {
++        LeavesConfig.config.addDefault(path, Integer.valueOf(dfl));
++        return LeavesConfig.config.getInt(path, dfl);
++    }
++
++    static long getLong(final String path, final long dfl) {
++        LeavesConfig.config.addDefault(path, Long.valueOf(dfl));
++        return LeavesConfig.config.getLong(path, dfl);
++    }
++
++    static double getDouble(final String path, final double dfl) {
++        LeavesConfig.config.addDefault(path, Double.valueOf(dfl));
++        return LeavesConfig.config.getDouble(path, dfl);
++    }
++
++    static String getString(final String path, final String dfl) {
++        LeavesConfig.config.addDefault(path, dfl);
++        return LeavesConfig.config.getString(path, dfl);
++    }
++
++    public static final class WorldConfig {
++
++        public final String worldName;
++        public String configPath;
++        ConfigurationSection worldDefaults;
++
++        public WorldConfig(final String worldName) {
++            this.worldName = worldName;
++            this.init();
++        }
++
++        public void init() {
++            this.worldDefaults = LeavesConfig.config.getConfigurationSection("world-settings.default");
++            if (this.worldDefaults == null) {
++                this.worldDefaults = LeavesConfig.config.createSection("world-settings.default");
++            }
++
++            String worldSectionPath = LeavesConfig.configVersion < CURRENT_CONFIG_VERSION ? this.worldName : "world-settings.".concat(this.worldName);
++            ConfigurationSection section = LeavesConfig.config.getConfigurationSection(worldSectionPath);
++            this.configPath = worldSectionPath;
++            if (LeavesConfig.createWorldSections) {
++                if (section == null) {
++                    section = LeavesConfig.config.createSection(worldSectionPath);
++                }
++                LeavesConfig.config.set(worldSectionPath, section);
++            }
++
++            this.load();
++        }
++
++        public void load() {
++            for (final Method method : LeavesConfig.WorldConfig.class.getDeclaredMethods()) {
++                if (method.getReturnType() != void.class || method.getParameterCount() != 0 ||
++                    !Modifier.isPrivate(method.getModifiers()) || Modifier.isStatic(method.getModifiers())) {
++                    continue;
++                }
++
++                try {
++                    method.setAccessible(true);
++                    method.invoke(this, EMPTY);
++                } catch (final Exception ex) {
++                    SneakyThrow.sneaky(ex); /* Rethrow, this is critical */
++                    throw new RuntimeException(ex); // unreachable
++                }
++            }
++
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                ConfigurationSection oldSection = LeavesConfig.config.getConfigurationSection(this.worldName);
++                LeavesConfig.config.set("world-settings.".concat(this.worldName), oldSection);
++                LeavesConfig.config.set(this.worldName, null);
++            }
++
++            /* We re-save to add new options */
++            try {
++                LeavesConfig.config.save(LeavesConfig.configFile);
++            } catch (final Exception ex) {
++                Bukkit.getLogger().log(Level.SEVERE, "Unable to save leaves config", ex);
++            }
++        }
++
++        void set(final String path, final Object val) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            this.worldDefaults.set(path, val);
++            if (config != null && config.get(path) != null) {
++                config.set(path, val);
++            }
++        }
++
++        boolean getBoolean(final String path, final boolean dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            this.worldDefaults.addDefault(path, Boolean.valueOf(dfl));
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getBoolean(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getBoolean(path) : config.getBoolean(path, this.worldDefaults.getBoolean(path));
++        }
++
++        boolean getBooleanRaw(final String path, final boolean dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getBoolean(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getBoolean(path, dfl) : config.getBoolean(path, this.worldDefaults.getBoolean(path, dfl));
++        }
++
++        int getInt(final String path, final int dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            this.worldDefaults.addDefault(path, Integer.valueOf(dfl));
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getInt(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getInt(path) : config.getInt(path, this.worldDefaults.getInt(path));
++        }
++
++        int getIntRaw(final String path, final int dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getInt(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getInt(path, dfl) : config.getInt(path, this.worldDefaults.getInt(path, dfl));
++        }
++
++        long getLong(final String path, final long dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            this.worldDefaults.addDefault(path, Long.valueOf(dfl));
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getLong(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getLong(path) : config.getLong(path, this.worldDefaults.getLong(path));
++        }
++
++        long getLongRaw(final String path, final long dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getLong(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getLong(path, dfl) : config.getLong(path, this.worldDefaults.getLong(path, dfl));
++        }
++
++        double getDouble(final String path, final double dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            this.worldDefaults.addDefault(path, Double.valueOf(dfl));
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getDouble(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getDouble(path) : config.getDouble(path, this.worldDefaults.getDouble(path));
++        }
++
++        double getDoubleRaw(final String path, final double dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            if (LeavesConfig.configVersion < CURRENT_CONFIG_VERSION) {
++                if (config != null && config.getDouble(path) == dfl) {
++                    config.set(path, null);
++                }
++            }
++            return config == null ? this.worldDefaults.getDouble(path, dfl) : config.getDouble(path, this.worldDefaults.getDouble(path, dfl));
++        }
++
++        String getString(final String path, final String dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            this.worldDefaults.addDefault(path, dfl);
++            return config == null ? this.worldDefaults.getString(path) : config.getString(path, this.worldDefaults.getString(path));
++        }
++
++        String getStringRaw(final String path, final String dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            return config == null ? this.worldDefaults.getString(path, dfl) : config.getString(path, this.worldDefaults.getString(path, dfl));
++        }
++
++        List getList(final String path, final List dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            this.worldDefaults.addDefault(path, dfl);
++            return config == null ? this.worldDefaults.getList(path) : config.getList(path, this.worldDefaults.getList(path));
++        }
++
++        List getListRaw(final String path, final List dfl) {
++            final ConfigurationSection config = LeavesConfig.config.getConfigurationSection(this.configPath);
++            return config == null ? this.worldDefaults.getList(path, dfl) : config.getList(path, this.worldDefaults.getList(path, dfl));
++        }
++    }
++}
